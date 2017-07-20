@@ -60,6 +60,9 @@ public:
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
     void init(ros::NodeHandle nh);
     geometry_msgs::TransformStamped findTransform(string child, string parent);
+    
+    void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
+    void callback_fcu(const sensor_msgs::Imu fcu);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
@@ -79,7 +82,7 @@ public:
     ros::Publisher tc_pub; //framerate publisher
         
     ros::Subscriber sub;
-    void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
+    ros::Subscriber sub_fcu;
 
     bool pubPose;
     cv::Mat pose;
@@ -92,79 +95,15 @@ public:
     double loopTime;
     double rate;
     
-    geometry_msgs::TransformStamped WtV;
-    geometry_msgs::TransformStamped WtC;
-    geometry_msgs::TransformStamped WtI;
+    geometry_msgs::TransformStamped WtV; //world->vicon orientation
+    geometry_msgs::TransformStamped WtC; //world->camera orientation
+    geometry_msgs::TransformStamped WtI; //world->imu4 orientation
+    geometry_msgs::TransformStamped WtF; //world->fcu orientation
     
     float xe;
     float ye;
     float ze;
 };
-/*
-// Load settings related to stereo calibration
-int LoadSettings(int argc, char **argv, ImageGrabber igb) {
-        cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
-        if(!fsSettings.isOpened())
-        {
-            cerr << "ERROR: Wrong path to settings" << endl;
-            return -1;
-        }
-
-        cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
-        fsSettings["LEFT.K"] >> K_l;
-        fsSettings["RIGHT.K"] >> K_r;
-
-        fsSettings["LEFT.P"] >> P_l;
-        fsSettings["RIGHT.P"] >> P_r;
-
-        fsSettings["LEFT.R"] >> R_l;
-        fsSettings["RIGHT.R"] >> R_r;
-
-        fsSettings["LEFT.D"] >> D_l;
-        fsSettings["RIGHT.D"] >> D_r;
-
-        int rows_l = fsSettings["LEFT.height"];
-        int cols_l = fsSettings["LEFT.width"];
-        int rows_r = fsSettings["RIGHT.height"];
-        int cols_r = fsSettings["RIGHT.width"];
-
-        if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
-                rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
-        {
-            cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
-            return -1;
-        }
-
-        cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,igb.M1l,igb.M2l);
-        cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
-        
-        return 0; //added to dispel warning
-}
-
-
-void setupORBSLAM(int argc, char **argv, ImageGrabber igb) {
-
-    stringstream ss(argv[3]);
-	ss >> boolalpha >> igb.do_rectify;
-
-    if(igb.do_rectify)
-    {   
-        LoadSettings(argc, argv, igb);   
-    }
-
-    ros::NodeHandle nh;
-
-    message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "/camera/right/image_raw", 1);
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
-    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
-    sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
-    
-    igb.init(nh);
-
-
-}
-*/
 
 int main(int argc, char **argv)
 {
@@ -248,22 +187,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-
-/*
-    cycles = 2;
-    if (argv[4]) { //running ORB_SLAM again
-        while (cycles > 0) {
-        cycles = cycles-1;
-        cerr << "Running Again..." << endl;
-        
-        //setupORBSLAM();
-        //how does ORB_SLAM know that it needs to start over?
-        //how does the bag restart? 
-        
-        }
-    }
-*/
-
 //my function for publishing various things (original)
 void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
     if (toPublish.empty()) {return;}
@@ -306,7 +229,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     //ROS_INFO("callback...");
     //Vicon.header.seq //int
     Vicon.header = SubscribedTransform.header; //sending a transform between world and vicon/firefly_sbx/firefly_sbx
-    Vicon.pose.position.x = SubscribedTransform.transform.translation.x;
+    Vicon.pose.position.x = SubscribedTransform.transform.translation.x; //this could be incorrect
     Vicon.pose.position.y = SubscribedTransform.transform.translation.y;
     Vicon.pose.position.z = SubscribedTransform.transform.translation.z;
     Vicon.pose.orientation = SubscribedTransform.transform.rotation;
@@ -332,6 +255,23 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
 
+void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
+{
+
+    //geometry_msgs::TransformStamped WtF; //world->fcu orientation
+    
+    WtF.header.frame_id = "world"; //sending a transform between world and fcu/imu
+    WtF.child_frame_id = "fcu";
+    WtF.header.stamp = ros::Time::now(); //this may be a problem (convert to secs)
+    WtF.transform.translation.x = Vicon.pose.position.x;
+    WtF.transform.translation.y = Vicon.pose.position.y;
+    WtF.transform.translation.z = Vicon.pose.position.z;
+    WtF.transform.rotation = fcu.orientation;
+    
+    //v_pub.publish(WtF); //publishing absolute pose;
+	br.sendTransform(WtF); //sending TF Transform (represents world->fcu pose)
+}
+
 
 void ImageGrabber::init(ros::NodeHandle nh)
 {
@@ -352,6 +292,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
+    sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
 }
 
 //finding transform between two frames to find rms error

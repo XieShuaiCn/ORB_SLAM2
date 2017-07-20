@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
@@ -156,10 +157,16 @@ Visualization Manager:
       Frames:
         All Enabled: false
         camera_frame:
-          Value: true
+          Value: false
         camera_optical_frame:
           Value: false
+        fcu:
+          Value: false
+        fcu_vicon:
+          Value: true
         imu4:
+          Value: false
+        imu5:
           Value: false
         init_link:
           Value: false
@@ -178,6 +185,11 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
+          fcu:
+            fcu_vicon:
+              {}
+          imu5:
+            {}
           local:
             init_link:
               camera_optical_frame:
@@ -214,24 +226,24 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.08894062
+      Distance: 8.03642941
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.19300234
-        Y: -0.272455961
-        Z: 0.966480553
+        X: -0.0684516877
+        Y: 0.0515859313
+        Z: 0.267249823
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.41001305
-      Target Frame: world
+      Pitch: 0.390013158
+      Target Frame: vicon/firefly_sbx/firefly_sbx
       Value: Orbit (rviz)
-      Yaw: 1.92446351
+      Yaw: 0.729463875
     Saved:
       - Class: rviz/Orbit
         Distance: 12.164053
@@ -328,6 +340,25 @@ Visualization Manager:
         Target Frame: world
         Value: Orbit (rviz)
         Yaw: 3.05767155
+      - Class: rviz/Orbit
+        Distance: 7.04615307
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.0599999987
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Focal Point:
+          X: 0.869592786
+          Y: -2.29266095
+          Z: -0.0785796046
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.0500000007
+        Name: Orbit
+        Near Clip Distance: 0.00999999978
+        Pitch: 0.0950133726
+        Target Frame: vicon/firefly_sbx/firefly_sbx
+        Value: Orbit (rviz)
+        Yaw: 1.84946358
 Window Geometry:
   Displays:
     collapsed: false
