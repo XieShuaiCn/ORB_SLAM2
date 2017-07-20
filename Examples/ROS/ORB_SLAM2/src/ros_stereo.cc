@@ -34,6 +34,9 @@
 
 #include"../../../include/System.h"
 
+#include "ros/ros.h"
+#include "geometry_msgs/TransformStamped.h"
+
 using namespace std;
 
 class ImageGrabber
@@ -42,10 +45,22 @@ public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
+    void init(ros::NodeHandle nh);
+    geometry_msgs::TransformStamped findTransform(string child, string parent);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
+    
+    ros::Publisher c_pub; //camera_pose publisher
+    ros::Publisher tv_pub;
+    ros::Publisher tc_pub;
+    
+    cv::Mat pose;
+    tf::TransformBroadcaster br;
+    
+    geometry_msgs::TransformStamped WtV;
+    geometry_msgs::TransformStamped WtC;
 };
 
 int main(int argc, char **argv)
@@ -130,6 +145,70 @@ int main(int argc, char **argv)
     return 0;
 }
 
+//my function for publishing various things (original)
+void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
+    if (toPublish.empty()) {return;}
+    
+    cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix
+	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting
+	
+	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
+		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                         Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+
+	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+	
+	//tf::Quaternion Quaternion;           
+    //RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
+    
+    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
+    
+    if (publishTransform) {                             //change this to old frame time
+	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
+    }
+    
+    geometry_msgs::PoseStamped MessageToPublish;
+	MessageToPublish.pose.position.x = TF_Transform.getOrigin().x();
+	MessageToPublish.pose.position.y = TF_Transform.getOrigin().y();
+	MessageToPublish.pose.position.z = TF_Transform.getOrigin().z();
+	MessageToPublish.pose.orientation.x = TF_Transform.getRotation().x();
+	MessageToPublish.pose.orientation.y = TF_Transform.getRotation().y();
+	MessageToPublish.pose.orientation.z = TF_Transform.getRotation().z();
+	MessageToPublish.pose.orientation.w = TF_Transform.getRotation().w();
+
+	MessageToPublish.header.stamp = ros::Time::now();
+	MessageToPublish.header.frame_id = child;
+	Publisher.publish(MessageToPublish); //publishing pose
+}
+
+void ImageGrabber::init(ros::NodeHandle nh)
+{    
+    //advertising my publishers
+    c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
+    tv_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transV",1000);
+    tc_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transC",1000);
+    
+    
+    sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
+}
+
+//finding transform between two frames to find rms error
+geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
+    geometry_msgs::TransformStamped transformStamped;
+    
+    try{
+      transformStamped = mpSLAM->mpTracker->tfBuffer.lookupTransform(parent, child, ros::Time(0));
+      return transformStamped;
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ROS_INFO("Transform Exception!");
+      //return false; //this could be an issue
+      return transformStamped;
+    }
+
+}
+
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
     // Copy the ros image message to cv::Mat.
@@ -166,6 +245,24 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
         mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
+    
+    // publishing bare bones
+    
+    
+    // getting camera pose
+    pubPose = true;
+    if (pose.empty()) {pubPose = false;} //publishing camera_pose
+    if (pubPose) {
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
+    publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true);
+    }
+    
+    //////// getting rms error //////
+    WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
+    WtC = ImageGrabber::findTransform("camera_frame", "world");
+    
+    tv_pub.publish(WtV);
+    tc_pub.publish(WtC);
 
 }
 
