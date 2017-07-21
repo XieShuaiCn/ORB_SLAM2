@@ -47,6 +47,7 @@
 using namespace std;
 
 geometry_msgs::PoseStamped Vicon;
+geometry_msgs::PoseStamped Pose;
 double restartTimer;
 double timeToWait = 150;
 int cycles;
@@ -98,7 +99,9 @@ public:
     geometry_msgs::TransformStamped WtV; //world->vicon orientation
     geometry_msgs::TransformStamped WtC; //world->camera orientation
     geometry_msgs::TransformStamped WtI; //world->imu4 orientation
-    geometry_msgs::TransformStamped WtF; //world->fcu orientation
+    geometry_msgs::TransformStamped WtFv; //world->fcu_vt orientation
+    geometry_msgs::TransformStamped WtFo; //world->fcu_ot orientation
+    geometry_msgs::TransformStamped WtO;  //world->Camera_optical_frame
     
     float xe;
     float ye;
@@ -188,11 +191,11 @@ int main(int argc, char **argv)
 }
 
 //my function for publishing various things (original)
-void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
+void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform, ros::Time stamp) {
     if (toPublish.empty()) {return;}
     
     cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix
-	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting
+	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting 
 	
 	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
 		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
@@ -206,7 +209,7 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
     tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
     
     if (publishTransform) {                             //change this to old frame time
-	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
+	br.sendTransform(tf::StampedTransform(TF_Transform, stamp, parent, child)); //sending TF Transform
     }
     
     geometry_msgs::PoseStamped MessageToPublish;
@@ -218,7 +221,7 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 	MessageToPublish.pose.orientation.z = TF_Transform.getRotation().z();
 	MessageToPublish.pose.orientation.w = TF_Transform.getRotation().w();
 
-	MessageToPublish.header.stamp = ros::Time::now();
+	MessageToPublish.header.stamp = stamp;
 	MessageToPublish.header.frame_id = child;
 	Publisher.publish(MessageToPublish); //publishing pose
 }
@@ -258,18 +261,34 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
 {
 
-    //geometry_msgs::TransformStamped WtF; //world->fcu orientation
+    //geometry_msgs::TransformStamped WtFv; //world->fcu_vt orientation
     
-    WtF.header.frame_id = "world"; //sending a transform between world and fcu/imu
-    WtF.child_frame_id = "fcu";
-    WtF.header.stamp = ros::Time::now(); //this may be a problem (convert to secs)
-    WtF.transform.translation.x = Vicon.pose.position.x;
-    WtF.transform.translation.y = Vicon.pose.position.y;
-    WtF.transform.translation.z = Vicon.pose.position.z;
-    WtF.transform.rotation = fcu.orientation;
+    WtFv.header.frame_id = "world"; //sending a transform between world and fcu_vt
+    WtFv.child_frame_id = "fcu_vt";
+    WtFv.header.stamp = fcu.header.stamp;
+    WtFv.transform.translation.x = Vicon.pose.position.x;
+    WtFv.transform.translation.y = Vicon.pose.position.y;
+    WtFv.transform.translation.z = Vicon.pose.position.z;
+    WtFv.transform.rotation = fcu.orientation;
     
     //v_pub.publish(WtF); //publishing absolute pose;
-	br.sendTransform(WtF); //sending TF Transform (represents world->fcu pose)
+	br.sendTransform(WtFv); //sending TF Transform (represents world->fcu pose)
+	
+   //geometry_msgs::TransformStamped WtFc; //world->fcu_ot orientation
+   //geometry_msgs::TransformStamped WtO;  //world->Camera_optical_frame
+   
+    WtO = ImageGrabber::findTransform("camera_optical_frame", "world");
+    
+    WtFo.header.frame_id = "world"; //sending a transform between world and fcu_ot
+    WtFo.child_frame_id = "fcu_ot";
+    WtFo.header.stamp = fcu.header.stamp;
+    WtFo.transform.translation.x = WtO.transform.translation.x;
+    WtFo.transform.translation.y = WtO.transform.translation.y;
+    WtFo.transform.translation.z = WtO.transform.translation.z;
+    WtFo.transform.rotation = fcu.orientation;
+    
+    //v_pub.publish(WtF); //publishing absolute pose;
+	br.sendTransform(WtFo); //sending TF Transform (represents world->fcu pose)
 }
 
 
@@ -358,14 +377,19 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if (pose.empty()) {pubPose = false;} //publishing camera_pose
     if (pubPose) {
     cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
-    publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true);
+    publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true, msgLeft->header.stamp);
+    
+    //geometry_msgs::PoseStamped Pose; //saving pose to global variable so fcu can use it
+    Pose.pose.position.x = TWC.rowRange(0,3).col(3).at<float>(0);
+    Pose.pose.position.y = TWC.rowRange(0,3).col(3).at<float>(1);
+    Pose.pose.position.z = TWC.rowRange(0,3).col(3).at<float>(2);
     }
     
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
-    publish(mVelocity, m_pub, br, "", "imu4", false);
+    publish(mVelocity, m_pub, br, "", "imu4", false, msgLeft->header.stamp);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
-    publish(pVelocity, p_pub, br, "", "imu4", false);
+    publish(pVelocity, p_pub, br, "", "imu4", false, msgLeft->header.stamp); //use msgLeft->header.stamp for current time
     
     //calculating frame rate / delay and publishing it
     loopTime = ros::Time::now().toSec() - startTime;
@@ -394,14 +418,15 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //cout << "translation..." << endl;
     //cout << WtC.transform.translation.z << endl;
     
+    /*
     // publishing IMU info //
-    //WtV
     WtI = ImageGrabber::findTransform("imu4", "world");
     
     WtI.child_frame_id = "imu5";
     WtI.transform.translation = WtV.transform.translation;
     
     br.sendTransform(WtI);
+    */
     
 } //end
 

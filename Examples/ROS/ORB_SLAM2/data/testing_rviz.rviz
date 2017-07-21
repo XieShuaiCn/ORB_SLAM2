@@ -8,7 +8,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
-    Tree Height: 304
+    Tree Height: 288
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -159,14 +159,16 @@ Visualization Manager:
         camera_frame:
           Value: false
         camera_optical_frame:
-          Value: false
-        fcu:
+          Value: true
+        fcu_optical:
+          Value: true
+        fcu_ot:
           Value: false
         fcu_vicon:
-          Value: true
-        imu4:
           Value: false
-        imu5:
+        fcu_vt:
+          Value: false
+        imu4:
           Value: false
         init_link:
           Value: false
@@ -175,7 +177,7 @@ Visualization Manager:
         odom:
           Value: false
         vicon/firefly_sbx/firefly_sbx:
-          Value: true
+          Value: false
         world:
           Value: true
       Marker Scale: 1
@@ -185,11 +187,12 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          fcu:
+          fcu_ot:
+            fcu_optical:
+              {}
+          fcu_vt:
             fcu_vicon:
               {}
-          imu5:
-            {}
           local:
             init_link:
               camera_optical_frame:
@@ -226,148 +229,53 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.03642941
+      Distance: 5.30225277
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0684516877
-        Y: 0.0515859313
-        Z: 0.267249823
+        X: 0.416895777
+        Y: -0.452548832
+        Z: 0.43013379
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.390013158
-      Target Frame: vicon/firefly_sbx/firefly_sbx
+      Pitch: 0.395012856
+      Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.729463875
+      Yaw: 6.14269161
     Saved:
       - Class: rviz/Orbit
-        Distance: 12.164053
+        Distance: 9.78644466
         Enable Stereo Rendering:
           Stereo Eye Separation: 0.0599999987
           Stereo Focal Distance: 1
           Swap Stereo Eyes: false
           Value: false
         Focal Point:
-          X: -0.0326985046
-          Y: 1.13501632
-          Z: -0.0730202943
+          X: 0.261588842
+          Y: 1.28818476
+          Z: 0.436947405
         Focal Shape Fixed Size: true
         Focal Shape Size: 0.0500000007
         Name: Orbit
         Near Clip Distance: 0.00999999978
-        Pitch: 0.490398169
-        Target Frame: imu4
-        Value: Orbit (rviz)
-        Yaw: 2.98540878
-      - Class: rviz/Orbit
-        Distance: 18.5931015
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.0599999987
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Focal Point:
-          X: -0.00260187313
-          Y: 0.140443146
-          Z: 0.272429973
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.0500000007
-        Name: Orbit
-        Near Clip Distance: 0.00999999978
-        Pitch: 0.690398216
-        Target Frame: odom
-        Value: Orbit (rviz)
-        Yaw: 3.25041127
-      - Class: rviz/Orbit
-        Distance: 0.0253920108
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.0599999987
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Focal Point:
-          X: -0.908334494
-          Y: 0.466110796
-          Z: 1.43992639
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.0500000007
-        Name: Orbit
-        Near Clip Distance: 0.00999999978
-        Pitch: 0.630013287
+        Pitch: 0.460012972
         Target Frame: world
         Value: Orbit (rviz)
-        Yaw: 3.05767155
-      - Class: rviz/Orbit
-        Distance: 0.0253920108
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.0599999987
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Focal Point:
-          X: -0.908334494
-          Y: 0.466110796
-          Z: 1.43992639
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.0500000007
-        Name: Orbit
-        Near Clip Distance: 0.00999999978
-        Pitch: 0.630013287
-        Target Frame: world
-        Value: Orbit (rviz)
-        Yaw: 3.05767155
-      - Class: rviz/Orbit
-        Distance: 0.0253920108
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.0599999987
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Focal Point:
-          X: 0
-          Y: 0
-          Z: 0
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.0500000007
-        Name: Orbit
-        Near Clip Distance: 0.00999999978
-        Pitch: 0.630013287
-        Target Frame: world
-        Value: Orbit (rviz)
-        Yaw: 3.05767155
-      - Class: rviz/Orbit
-        Distance: 7.04615307
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.0599999987
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Focal Point:
-          X: 0.869592786
-          Y: -2.29266095
-          Z: -0.0785796046
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.0500000007
-        Name: Orbit
-        Near Clip Distance: 0.00999999978
-        Pitch: 0.0950133726
-        Target Frame: vicon/firefly_sbx/firefly_sbx
-        Value: Orbit (rviz)
-        Yaw: 1.84946358
+        Yaw: 6.19585609
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 943
+  Height: 915
   Hide Left Dock: false
-  Hide Right Dock: true
+  Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000325fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000028000001cf000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d0065007200610000000169000000f90000000000000000fb0000000a0049006d00610067006501000001fd000001500000001600ffffff000000010000010f00000325fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000325000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000005000000003efc0100000002fb0000000800540069006d00650100000000000005000000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000003900000032500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000309fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000028000001bf000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d0065007200610000000169000000f90000000000000000fb0000000a0049006d00610067006501000001ed000001440000001600ffffff000000010000010f00000325fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000325000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000005000000003efc0100000002fb0000000800540069006d00650100000000000005000000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000003900000030900000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -375,7 +283,7 @@ Window Geometry:
   Tool Properties:
     collapsed: false
   Views:
-    collapsed: true
+    collapsed: false
   Width: 1280
   X: 0
-  Y: 24
+  Y: 25
