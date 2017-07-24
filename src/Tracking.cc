@@ -444,12 +444,8 @@ void Tracking::Track()
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
                 
-                //calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
-                //mVelocity = pVelocity;
-                    
-
-                //ros::NodeHandle nh;
-                //ros::Subscriber sub = nh.subscribe("testing_sub", 1000, chatterCallback);
+                calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
+                mVelocity = pVelocity;
 
             }
             else
@@ -1067,8 +1063,13 @@ bool Tracking::calculatePVelocity()
     //////// getting IMU information //////
     geometry_msgs::TransformStamped transformStamped;
     try{
-      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
-                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
+    /*
+      transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
+                                ros::Time(mLastFrame.mTimeStamp), "fcu_ot", ros::Duration(.01));
+    */
+    transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
+                                ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
+    
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
