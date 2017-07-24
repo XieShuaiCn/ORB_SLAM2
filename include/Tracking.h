@@ -137,6 +137,8 @@ public:
     
     tf2_ros::Buffer tfBuffer; //this was originally protected
     tf2_ros::TransformListener tfListener;
+    
+    bool resetBool = false;
 
 protected:
 

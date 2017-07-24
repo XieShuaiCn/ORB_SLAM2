@@ -445,7 +445,7 @@ void Tracking::Track()
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
                 
                 calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
-                mVelocity = pVelocity;
+                mVelocity = pVelocity; //<<<<<<<<<<<<>>>>>>>>>>>>>>>
 
             }
             else
@@ -903,12 +903,12 @@ bool Tracking::TrackWithMotionModel()
     else
         th=7;
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
-
+    
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR); //doubles window radius
     }
 
     if(nmatches<20)
@@ -1735,7 +1735,9 @@ bool Tracking::Relocalization()
 
 void Tracking::Reset() // original hard reset
 {
-
+    
+    resetBool = true; // letting ros_stereo know that there has been a reset so init_link->world can be changed
+    
     cout << "System Hard Resetting" << endl;
     if(mpViewer)
     {

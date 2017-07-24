@@ -76,18 +76,19 @@ public:
     ros::Publisher v_pub; //world->vicon absolute state publisher
     ros::Publisher i_pub; //vicon->init_link semi-static transform publisher
     ros::Publisher t_pub; //framerate publisher
-    ros::Publisher xe_pub; //framerate publisher
-    ros::Publisher ye_pub; //framerate publisher
-    ros::Publisher ze_pub; //framerate publisher
-    ros::Publisher tv_pub; //framerate publisher
-    ros::Publisher tc_pub; //framerate publisher
+    ros::Publisher xe_pub; 
+    ros::Publisher ye_pub; 
+    ros::Publisher ze_pub; 
+    ros::Publisher tv_pub; 
+    ros::Publisher tc_pub; 
+    ros::Publisher tr_pub; //tracking publisher 
         
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
 
     bool pubPose;
     cv::Mat pose;
-    bool transformFound;
+    bool sendTransform;
         
     tf::TransformBroadcaster br;
     geometry_msgs::TransformStamped InitLink_to_World_Transform;
@@ -106,6 +107,9 @@ public:
     float xe;
     float ye;
     float ze;
+    
+    int lastTrackingState;
+    bool resetBool;
 };
 
 int main(int argc, char **argv)
@@ -239,12 +243,12 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     
     //here I am publishing the transform between Init_Link and World, this transform was originally hard-coded but is now automatically set
     // Init_Link is where ORB_SLAM creates its first keyframe, which in stereo is typically the first frame.
-    if (!transformFound) {
+    if (sendTransform) {
         InitLink_to_World_Transform = SubscribedTransform;
         
         InitLink_to_World_Transform.header.frame_id = "world";
         InitLink_to_World_Transform.child_frame_id = "local";
-        transformFound = true;
+        sendTransform = false;
     }
     //cerr << "Transform Found..." << endl;
     //cerr << InitLink_to_World_Transform << endl;
@@ -293,8 +297,10 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
 
 
 void ImageGrabber::init(ros::NodeHandle nh)
-{
-    transformFound = false;
+{   
+    resetBool = false;
+    sendTransform = true;
+    lastTrackingState = -1;
     
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
@@ -303,11 +309,12 @@ void ImageGrabber::init(ros::NodeHandle nh)
     v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
     i_pub = nh.advertise<geometry_msgs::TransformStamped>("vicon/init_link",1000);
     t_pub = nh.advertise<std_msgs::Float64>("rate",1000);
-    xe_pub = nh.advertise<std_msgs::Float64>("error/x",1000);
-    ye_pub = nh.advertise<std_msgs::Float64>("error/y",1000);
-    ze_pub = nh.advertise<std_msgs::Float32>("error/z",1000);
+    //xe_pub = nh.advertise<std_msgs::Float64>("error/x",1000);
+    //ye_pub = nh.advertise<std_msgs::Float64>("error/y",1000);
+    //ze_pub = nh.advertise<std_msgs::Float32>("error/z",1000);
     tv_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transV",1000);
     tc_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transC",1000);
+    tr_pub = nh.advertise<std_msgs::Int8>("trackingState",1000);
     
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
@@ -369,8 +376,14 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-
-
+    //// Checking if init link is reset ///
+    //if ((lastTrackingState != 2) && (mpSLAM->mpTracker->mState == 2)) {sendTransform = true;}
+    //lastTrackingState = mpSLAM->mpTracker->mState;
+    
+    if (mpSLAM->mpTracker->resetBool) {sendTransform = true;}
+    mpSLAM->mpTracker->resetBool = false;
+    
+    
     ////// Publishing pose, mVelocity, pVelocity ///////
     
     pubPose = true;
@@ -391,11 +404,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
     publish(pVelocity, p_pub, br, "", "imu4", false, msgLeft->header.stamp); //use msgLeft->header.stamp for current time
     
-    //calculating frame rate / delay and publishing it
-    loopTime = ros::Time::now().toSec() - startTime;
-    rate = 1/loopTime;
-    t_pub.publish(rate); //publishing framerate of ORB_SLAM2
-    
     //////// getting rms error //////
     WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
     WtC = ImageGrabber::findTransform("camera_frame", "world");
@@ -404,16 +412,16 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //ye = std::abs (WtC.transform.translation.y - WtV.transform.translation.y);
     //ze = std::abs (WtC.transform.translation.z - WtV.transform.translation.z);
     
-    xe = WtC.transform.translation.x;
-    ye = WtV.transform.translation.y;
-    ze = WtC.transform.translation.z;
+    //xe = WtC.transform.translation.x;
+    //ye = WtV.transform.translation.y;
+    //ze = WtC.transform.translation.z;
     
     tv_pub.publish(WtV);
     tc_pub.publish(WtC);
     
-    xe_pub.publish(xe);
-    ye_pub.publish(ye);
-    ze_pub.publish(WtC.transform.translation.z);
+    //xe_pub.publish(xe);
+    //ye_pub.publish(ye);
+    //ze_pub.publish(WtC.transform.translation.z);
     
     //cout << "translation..." << endl;
     //cout << WtC.transform.translation.z << endl;
@@ -427,6 +435,17 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     br.sendTransform(WtI);
     */
+    
+    //publishing tracking state
+    int ORBstate = mpSLAM->mpTracker->mState;
+    std_msgs::Int8 ROSstate;
+    ROSstate.data = ORBstate;
+    tr_pub.publish(ROSstate);
+    
+    //calculating frame rate / delay and publishing it
+    loopTime = ros::Time::now().toSec() - startTime;
+    rate = 1/loopTime;
+    t_pub.publish(rate); //publishing framerate of ORB_SLAM2
     
 } //end
 
