@@ -186,6 +186,9 @@ public:
     static float mnMaxY;
 
     static bool mbInitialComputations;
+    
+    cv::Mat pVelPredicted;
+    int length;
 
 
 private:

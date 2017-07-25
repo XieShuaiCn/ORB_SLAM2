@@ -43,9 +43,6 @@ public:
     // Computes the Hamming distance between two ORB descriptors
     static int DescriptorDistance(const cv::Mat &a, const cv::Mat &b);
 
-
-
-
     // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
     // Used to track the local map (Tracking) (1) (found)
     int SearchByProjection(Frame &F, const std::vector<MapPoint*> &vpMapPoints, const float th=3);
@@ -62,9 +59,6 @@ public:
     // Project MapPoints using a Similarity Transformation and search matches.
     // Used in loop detection (Loop Closing) (4) (found)
      int SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const std::vector<MapPoint*> &vpPoints, std::vector<MapPoint*> &vpMatched, int th);
-
-
-
 
     // Search matches between MapPoints in a KeyFrame and ORB in a Frame.
     // Brute force constrained to ORB that belong to the same vocabulary node (at a certain level)
@@ -94,7 +88,12 @@ public:
     static const int TH_LOW;
     static const int TH_HIGH;
     static const int HISTO_LENGTH;
-
+    
+    cv::Mat predicted;
+    int length;
+    
+    int getLength();
+    cv::Mat getPredicted();
 
 protected:
 

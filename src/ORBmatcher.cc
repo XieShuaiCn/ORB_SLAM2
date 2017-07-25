@@ -29,6 +29,9 @@
 
 #include<stdint-gcc.h>
 
+#include<opencv2/core/core.hpp>
+#include<opencv2/features2d/features2d.hpp>
+
 using namespace std;
 
 namespace ORB_SLAM2
@@ -41,6 +44,16 @@ const int ORBmatcher::HISTO_LENGTH = 30;
 ORBmatcher::ORBmatcher(float nnratio, bool checkOri): mfNNratio(nnratio), mbCheckOrientation(checkOri)
 {
 }
+
+
+int ORBmatcher::getLength() {
+return length;
+}
+
+cv::Mat ORBmatcher::getPredicted() {
+return predicted.clone();
+}
+
 
 // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
 // Used to track the local map (Tracking) (1) -----------------------------------------------------------   (1)
@@ -155,7 +168,11 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
-
+    
+    //Matrix for my predictions
+    CurrentFrame.pVelPredicted = cv::Mat::zeros(LastFrame.N, 2, CV_32F); //ADR <-------------------------------------
+    CurrentFrame.length = LastFrame.N;
+    
     for(int i=0; i<LastFrame.N; i++)
     {
         MapPoint* pMP = LastFrame.mvpMapPoints[i];
@@ -175,13 +192,19 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 if(invzc<0)
                     continue;
 
-                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
+                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx; //u and v are the coordinates for the point predictions 
                 float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-
+                
+                // I want to be constructing some data structure here and publishing it, this contains 'seed' for points
                 if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
                     continue;
                 if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
                     continue;
+                    
+                //saving my u,v predictions //ADR <-----------------------------------------
+                //CurrentFrame.pVelPredicted.at<float>(i, 0) = u;
+                //CurrentFrame.pVelPredicted.at<float>(i, 1) = v;
+                CurrentFrame.pVelPredicted.push_back(cv::Point2f(u,v));
 
                 int nLastOctave = LastFrame.mvKeys[i].octave;
 

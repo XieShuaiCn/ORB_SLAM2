@@ -1,23 +1,6 @@
 /*
-* This file is part of ORB-SLAM2.
-*
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
-*
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+        Andre Ruas
 */
-
 
 #include<iostream>
 #include<algorithm>
@@ -40,6 +23,7 @@
 #include "std_msgs/Int8.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Bool.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TransformStamped.h"
 #include <cmath>        // std::abs
@@ -76,12 +60,14 @@ public:
     ros::Publisher v_pub; //world->vicon absolute state publisher
     ros::Publisher i_pub; //vicon->init_link semi-static transform publisher
     ros::Publisher t_pub; //framerate publisher
-    ros::Publisher xe_pub; 
-    ros::Publisher ye_pub; 
-    ros::Publisher ze_pub; 
     ros::Publisher tv_pub; 
     ros::Publisher tc_pub; 
     ros::Publisher tr_pub; //tracking publisher 
+    ros::Publisher pt_pub;
+    ros::Publisher tmm_pub;
+    ros::Publisher mop_pub;
+    ros::Publisher nl_pub; //number of tracking losses
+    ros::Publisher tl_pub; //time spend lost
         
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
@@ -104,12 +90,14 @@ public:
     geometry_msgs::TransformStamped WtFo; //world->fcu_ot orientation
     geometry_msgs::TransformStamped WtO;  //world->Camera_optical_frame
     
-    float xe;
-    float ye;
-    float ze;
-    
     int lastTrackingState;
     bool resetBool;
+    
+    double trackingLossStart = 0;
+    double trackingLossEnd = 0;
+    double trackingLostTime = 0;
+    double trackingLostTimeTotal = 0;
+    int numTrackingLosses = 0;
 };
 
 int main(int argc, char **argv)
@@ -117,7 +105,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "RGBD");
     ros::start();
 
-    if(argc != 4)
+    if(argc < 3)
     {
         cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
         ros::shutdown();
@@ -206,9 +194,6 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 		                         Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
 
 	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
-	
-	//tf::Quaternion Quaternion;           
-    //RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
     
     tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
     
@@ -232,9 +217,6 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 
 void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTransform)
 {
-    //cerr << "callback..." << endl;
-    //ROS_INFO("callback...");
-    //Vicon.header.seq //int
     Vicon.header = SubscribedTransform.header; //sending a transform between world and vicon/firefly_sbx/firefly_sbx
     Vicon.pose.position.x = SubscribedTransform.transform.translation.x; //this could be incorrect
     Vicon.pose.position.y = SubscribedTransform.transform.translation.y;
@@ -250,8 +232,6 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
         InitLink_to_World_Transform.child_frame_id = "local";
         sendTransform = false;
     }
-    //cerr << "Transform Found..." << endl;
-    //cerr << InitLink_to_World_Transform << endl;
     
     InitLink_to_World_Transform.header.stamp = SubscribedTransform.header.stamp;
     br.sendTransform(InitLink_to_World_Transform); //sending semi-static TF Transform (represents world->init_link)
@@ -275,11 +255,7 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
     WtFv.transform.translation.z = Vicon.pose.position.z;
     WtFv.transform.rotation = fcu.orientation;
     
-    //v_pub.publish(WtF); //publishing absolute pose;
 	br.sendTransform(WtFv); //sending TF Transform (represents world->fcu pose)
-	
-   //geometry_msgs::TransformStamped WtFc; //world->fcu_ot orientation
-   //geometry_msgs::TransformStamped WtO;  //world->Camera_optical_frame
    
     WtO = ImageGrabber::findTransform("camera_optical_frame", "world");
     
@@ -291,7 +267,6 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
     WtFo.transform.translation.z = WtO.transform.translation.z;
     WtFo.transform.rotation = fcu.orientation;
     
-    //v_pub.publish(WtF); //publishing absolute pose;
 	br.sendTransform(WtFo); //sending TF Transform (represents world->fcu pose)
 }
 
@@ -301,6 +276,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     resetBool = false;
     sendTransform = true;
     lastTrackingState = -1;
+    trackingLostTimeTotal = 0;
     
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
@@ -308,21 +284,22 @@ void ImageGrabber::init(ros::NodeHandle nh)
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
     v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
     i_pub = nh.advertise<geometry_msgs::TransformStamped>("vicon/init_link",1000);
-    t_pub = nh.advertise<std_msgs::Float64>("rate",1000);
-    //xe_pub = nh.advertise<std_msgs::Float64>("error/x",1000);
-    //ye_pub = nh.advertise<std_msgs::Float64>("error/y",1000);
-    //ze_pub = nh.advertise<std_msgs::Float32>("error/z",1000);
-    tv_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transV",1000);
-    tc_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transC",1000);
-    tr_pub = nh.advertise<std_msgs::Int8>("trackingState",1000);
-    
+    t_pub = nh.advertise<std_msgs::Float64>("diag/TrackTime",1000);
+    tv_pub = nh.advertise<geometry_msgs::TransformStamped>("diag/transV",1000);
+    tc_pub = nh.advertise<geometry_msgs::TransformStamped>("diag/transC",1000);
+    tr_pub = nh.advertise<std_msgs::Int8>("diag/trackingState",1000);
+    pt_pub = nh.advertise<std_msgs::Int8>("diag/pointsTracked",1000);
+    tmm_pub = nh.advertise<std_msgs::Float64>("diag/TwMMtime",1000);
+    mop_pub = nh.advertise<std_msgs::Bool>("diag/MoP",1000);
+    tl_pub = nh.advertise<std_msgs::Float64>("diag/timeSpentLost",1000);
+    nl_pub = nh.advertise<std_msgs::Int8>("diag/trackLossCount",1000);
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
 }
 
-//finding transform between two frames to find rms error
-geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
+    //finding transform between two frames to find rms error
+    geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
     geometry_msgs::TransformStamped transformStamped;
     
     try{
@@ -332,7 +309,6 @@ geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
       ROS_INFO("Transform Exception!");
-      //return false; //this could be an issue
       return transformStamped;
     }
 
@@ -376,10 +352,21 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-    //// Checking if init link is reset ///
-    //if ((lastTrackingState != 2) && (mpSLAM->mpTracker->mState == 2)) {sendTransform = true;}
-    //lastTrackingState = mpSLAM->mpTracker->mState;
+    // Checking if tracking is lost ///
+    if ((lastTrackingState == 2) && (mpSLAM->mpTracker->mState == 3)) {trackingLossStart = ros::Time::now().toSec();}
     
+    // Checking if tracking is no longer lost
+    if ((lastTrackingState == 3) && (mpSLAM->mpTracker->mState == 2)) 
+    {
+    trackingLossEnd = ros::Time::now().toSec();
+    trackingLostTime = trackingLossEnd - trackingLossStart;
+    trackingLostTimeTotal = trackingLostTimeTotal + trackingLostTime;
+    numTrackingLosses = numTrackingLosses + 1;
+    }
+    lastTrackingState = mpSLAM->mpTracker->mState;
+    
+    
+    //checking reset
     if (mpSLAM->mpTracker->resetBool) {sendTransform = true;}
     mpSLAM->mpTracker->resetBool = false;
     
@@ -408,33 +395,8 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
     WtC = ImageGrabber::findTransform("camera_frame", "world");
     
-    //xe = std::abs (WtC.transform.translation.x - WtV.transform.translation.x);
-    //ye = std::abs (WtC.transform.translation.y - WtV.transform.translation.y);
-    //ze = std::abs (WtC.transform.translation.z - WtV.transform.translation.z);
-    
-    //xe = WtC.transform.translation.x;
-    //ye = WtV.transform.translation.y;
-    //ze = WtC.transform.translation.z;
-    
     tv_pub.publish(WtV);
     tc_pub.publish(WtC);
-    
-    //xe_pub.publish(xe);
-    //ye_pub.publish(ye);
-    //ze_pub.publish(WtC.transform.translation.z);
-    
-    //cout << "translation..." << endl;
-    //cout << WtC.transform.translation.z << endl;
-    
-    /*
-    // publishing IMU info //
-    WtI = ImageGrabber::findTransform("imu4", "world");
-    
-    WtI.child_frame_id = "imu5";
-    WtI.transform.translation = WtV.transform.translation;
-    
-    br.sendTransform(WtI);
-    */
     
     //publishing tracking state
     int ORBstate = mpSLAM->mpTracker->mState;
@@ -444,8 +406,30 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     //calculating frame rate / delay and publishing it
     loopTime = ros::Time::now().toSec() - startTime;
-    rate = 1/loopTime;
-    t_pub.publish(rate); //publishing framerate of ORB_SLAM2
+    rate = loopTime;
+    t_pub.publish(rate); //publishing frame rate of ORB_SLAM2
+    
+    //publishing number of tracked points
+    int points = mpSLAM->mpTracker->mnMatchesInliers;
+    std_msgs::Int8 ROSpts;
+    ROSpts.data = points;
+    pt_pub.publish(ROSpts);
+    
+    //calculating frame rate / delay and publishing it
+    tmm_pub.publish(mpSLAM->mpTracker->TwMMtime); //publishing time it takes to track with motion model
+    
+    // publishing if we are using m or p velocity
+    mop_pub.publish(mpSLAM->mpTracker->usePvel);
+    
+    //publishing time spent lost
+    tl_pub.publish(trackingLostTimeTotal);
+    
+    //publishing number of tracking losses
+    std_msgs::Int8 losses;
+    losses.data = numTrackingLosses;
+    nl_pub.publish(losses);
+   
+    
     
 } //end
 

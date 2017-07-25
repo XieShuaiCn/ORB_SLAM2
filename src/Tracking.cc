@@ -445,7 +445,9 @@ void Tracking::Track()
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
                 
                 calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
-                mVelocity = pVelocity; //<<<<<<<<<<<<>>>>>>>>>>>>>>>
+                
+                if (usePvel) {mVelocity = pVelocity;} //<<<<<<<<<<<>>>>>>>>>>>>>>>>
+                
 
             }
             else
@@ -887,6 +889,8 @@ void Tracking::UpdateLastFrame()
 bool Tracking::TrackWithMotionModel()
 {
     ORBmatcher matcher(0.9,true);
+    
+    TwMMstart = ros::Time::now().toSec();
 
     // Update last frame pose according to its reference keyframe
     // Create "visual odometry" points if in Localization Mode
@@ -913,6 +917,8 @@ bool Tracking::TrackWithMotionModel()
 
     if(nmatches<20)
         return false;
+        
+    TwMMtime = ros::Time::now().toSec() - TwMMstart;
 
     // Optimize frame pose with all matches
     Optimizer::PoseOptimization(&mCurrentFrame);
@@ -1822,7 +1828,15 @@ void Tracking::InformOnlyTracking(const bool &flag)
     mbOnlyTracking = flag;
 }
 
+/*
+cv::Mat getPredicted() {
+return predicted.clone();
+}
 
+int getLength() {
+return length;
+}
+*/
 
 } //namespace ORB_SLAM
 

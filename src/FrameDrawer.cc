@@ -24,7 +24,11 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include"ORBmatcher.h"
+
 #include<mutex>
+
+#include"System.h"
 
 namespace ORB_SLAM2
 {
@@ -92,7 +96,9 @@ cv::Mat FrameDrawer::DrawFrame()
         mnTrackedVO=0;
         const float r = 5;
         const int n = vCurrentKeys.size();
-        for(int i=0;i<n;i++)
+        
+        
+        for(int i=0;i<n;i++) //drawing all actual point locations
         {
             if(vbVO[i] || vbMap[i])
             {
@@ -108,6 +114,7 @@ cv::Mat FrameDrawer::DrawFrame()
                     cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
                     cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
+                    
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
@@ -117,6 +124,25 @@ cv::Mat FrameDrawer::DrawFrame()
                 }
             }
         }
+        //ORBmatcher matcher(); //questionable
+        //int pV = Tracking::getLength(); // <-----------------------------
+        //cv::Mat predicted = pTracker->mCurrentFrame.pVelPredicted;
+        
+        //predicted and length are global variables now
+        
+        
+        for (cv::Point2f pt_pV : predicted) //drawing all predicted pVelocity points
+        {
+        cv::circle(im,pt_pV,2,cv::Scalar(0,0,255),-1);       
+        }
+        
+        
+        }
+        
+        //for (int k=0;k<mV;k++) //drawing all predicted mVelocity points
+        //{
+        
+        //}
     }
 
     cv::Mat imWithInfo;
@@ -182,6 +208,11 @@ void FrameDrawer::Update(Tracking *pTracker)
     }
     else if(pTracker->mLastProcessedState==Tracking::OK)
     {
+    
+        predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
+        length = pTracker->mCurrentFrame.length;
+        
+        
         for(int i=0;i<N;i++)
         {
             MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];

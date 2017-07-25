@@ -30,7 +30,7 @@ namespace ORB_SLAM2
 {
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer, bool do_multi):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+               const bool bUseViewer, bool usePvel):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), usePvel(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
     //mbSoftReset = false; //this should be removed at some point it is bad form
@@ -113,6 +113,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+    
+    mpTracker->usePvel = usePvel; //setting pVel to the correct bool
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)

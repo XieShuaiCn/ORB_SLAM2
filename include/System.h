@@ -169,7 +169,7 @@ private:
 
     // Soft Reset flag
     //std::mutex mMutexSoftReset;
-    //bool mbSoftReset = false;
+    bool usePvel = false;
 
     // Change mode flags
     std::mutex mMutexMode;

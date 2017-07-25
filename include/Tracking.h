@@ -72,7 +72,7 @@ public:
 
     // Load new settings
     // The focal length should be similar or scale prediction will fail when projecting points
-    // TODO: Modify MapPoint::PredictScale to take into account focal lenght
+    // TODO: Modify MapPoint::PredictScale to take into account focal length
     void ChangeCalibration(const string &strSettingPath);
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
@@ -139,7 +139,24 @@ public:
     tf2_ros::TransformListener tfListener;
     
     bool resetBool = false;
+    
+    /*
+    cv::Mat predicted;
+    int length;
+    
+    cv::Mat getPredicted();
+    int getLength();
+    */
+    
+    double TwMMstart;
+    double TwMMtime;
+    
+    bool usePvel;
+    
+        //Current matches in frame
+    int mnMatchesInliers;
 
+    
 protected:
 
     // Main tracking function. It is independent of the input sensor.
@@ -222,9 +239,6 @@ protected:
 
     // For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
     float mDepthMapFactor;
-
-    //Current matches in frame
-    int mnMatchesInliers;
 
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
