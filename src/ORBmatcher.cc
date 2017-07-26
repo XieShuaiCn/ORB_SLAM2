@@ -204,7 +204,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 //saving my u,v predictions //ADR <-----------------------------------------
                 //CurrentFrame.pVelPredicted.at<float>(i, 0) = u;
                 //CurrentFrame.pVelPredicted.at<float>(i, 1) = v;
-                //CurrentFrame.pVelPredicted.push_back(cv::Point2f(u,v));
+                CurrentFrame.pVelPredicted.push_back(cv::Point2f(u,v));
 
                 int nLastOctave = LastFrame.mvKeys[i].octave;
 

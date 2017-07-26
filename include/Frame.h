@@ -187,7 +187,7 @@ public:
 
     static bool mbInitialComputations;
     
-    //cv::Mat pVelPredicted;
+    vector<cv::Point2f> pVelPredicted;
     //int length;
 
 

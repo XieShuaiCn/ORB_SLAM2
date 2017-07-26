@@ -131,10 +131,10 @@ cv::Mat FrameDrawer::DrawFrame()
         //predicted and length are global variables now
         
         
-        //for (cv::Point2f pt_pV : predicted) //drawing all predicted pVelocity points
-        //{
-        //cv::circle(im,pt_pV,2,cv::Scalar(0,0,255),-1);       
-        //}
+        for (cv::Point2f pt_pV : predicted) //drawing all predicted pVelocity points
+        {
+        cv::circle(im,pt_pV,2,cv::Scalar(0,0,255),-1);       
+        }
         
         
         //}
@@ -209,7 +209,7 @@ void FrameDrawer::Update(Tracking *pTracker)
     else if(pTracker->mLastProcessedState==Tracking::OK)
     {
     
-        //predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
+        predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
         //length = pTracker->mCurrentFrame.length;
         
         
