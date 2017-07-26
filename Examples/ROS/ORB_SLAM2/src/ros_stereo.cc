@@ -419,7 +419,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     tmm_pub.publish(mpSLAM->mpTracker->TwMMtime); //publishing time it takes to track with motion model
     
     // publishing if we are using m or p velocity
-    mop_pub.publish(mpSLAM->mpTracker->usePvel);
+    //mop_pub.publish(mpSLAM->mpTracker->usePvel);
     
     //publishing time spent lost
     tl_pub.publish(trackingLostTimeTotal);

@@ -89,11 +89,11 @@ public:
     static const int TH_HIGH;
     static const int HISTO_LENGTH;
     
-    cv::Mat predicted;
-    int length;
+    //cv::Mat predicted;
+    //int length;
     
-    int getLength();
-    cv::Mat getPredicted();
+    //int getLength();
+    //cv::Mat getPredicted();
 
 protected:
 

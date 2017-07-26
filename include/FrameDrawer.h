@@ -48,8 +48,8 @@ public:
     // Draw last processed frame.
     cv::Mat DrawFrame();
     
-    std::vector<cv::Point2f> predicted;
-    int length;
+    //std::vector<cv::Point2f> predicted;
+    //int length;
 
 protected:
 

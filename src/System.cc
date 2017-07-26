@@ -114,7 +114,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
     
-    mpTracker->usePvel = usePvel; //setting pVel to the correct bool
+    //mpTracker->usePvel = usePvel; //setting pVel to the correct bool
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)

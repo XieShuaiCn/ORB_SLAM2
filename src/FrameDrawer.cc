@@ -24,11 +24,11 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include"ORBmatcher.h"
+//#include"ORBmatcher.h"
 
 #include<mutex>
 
-#include"System.h"
+//#include"System.h"
 
 namespace ORB_SLAM2
 {
@@ -209,7 +209,7 @@ void FrameDrawer::Update(Tracking *pTracker)
     else if(pTracker->mLastProcessedState==Tracking::OK)
     {
     
-        predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
+        //predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
         //length = pTracker->mCurrentFrame.length;
         
         

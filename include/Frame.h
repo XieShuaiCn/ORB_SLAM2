@@ -187,8 +187,8 @@ public:
 
     static bool mbInitialComputations;
     
-    cv::Mat pVelPredicted;
-    int length;
+    //cv::Mat pVelPredicted;
+    //int length;
 
 
 private:

@@ -45,7 +45,7 @@ ORBmatcher::ORBmatcher(float nnratio, bool checkOri): mfNNratio(nnratio), mbChec
 {
 }
 
-
+/*
 int ORBmatcher::getLength() {
 return length;
 }
@@ -53,7 +53,7 @@ return length;
 cv::Mat ORBmatcher::getPredicted() {
 return predicted.clone();
 }
-
+*/
 
 // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
 // Used to track the local map (Tracking) (1) -----------------------------------------------------------   (1)
