@@ -24,6 +24,6 @@
 
 <node name="rqt_tf_tree" pkg="rqt_tf_tree" type="rqt_tf_tree" />
 
-<node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true false"/>
+<node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true"/>
 
 </launch>
