@@ -24,6 +24,7 @@
 #include "std_msgs/Float64.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Bool.h"
+#include "std_msgs/String.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TransformStamped.h"
 #include <cmath>        // std::abs
@@ -68,6 +69,9 @@ public:
     ros::Publisher mop_pub;
     ros::Publisher nl_pub; //number of tracking losses
     ros::Publisher tl_pub; //time spend lost
+    ros::Publisher r_pub; //time spend lost
+    ros::Publisher b_pub; //time spend lost
+    
         
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
@@ -98,6 +102,9 @@ public:
     double trackingLostTime = 0;
     double trackingLostTimeTotal = 0;
     int numTrackingLosses = 0;
+    
+    string bag;    
+    string PlaybackRate;
 };
 
 int main(int argc, char **argv)
@@ -278,6 +285,13 @@ void ImageGrabber::init(ros::NodeHandle nh)
     lastTrackingState = -1;
     trackingLostTimeTotal = 0;
     
+    bool param; //setting pVel using Ros Parameter
+    nh.getParam("usePvel", param);
+    mpSLAM->mpTracker->usePvel = param;
+
+    nh.getParam("bag", bag);
+    nh.getParam("rate", PlaybackRate);
+    
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
@@ -293,6 +307,8 @@ void ImageGrabber::init(ros::NodeHandle nh)
     mop_pub = nh.advertise<std_msgs::Bool>("diag/MoP",1000);
     tl_pub = nh.advertise<std_msgs::Float64>("diag/timeSpentLost",1000);
     nl_pub = nh.advertise<std_msgs::Int8>("diag/trackLossCount",1000);
+    b_pub = nh.advertise<std_msgs::String>("diag/bagName",1000);
+    r_pub = nh.advertise<std_msgs::String>("diag/playbackRate",1000);
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
@@ -419,7 +435,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     tmm_pub.publish(mpSLAM->mpTracker->TwMMtime); //publishing time it takes to track with motion model
     
     // publishing if we are using m or p velocity
-    //mop_pub.publish(mpSLAM->mpTracker->usePvel);
+    mop_pub.publish(mpSLAM->mpTracker->usePvel);
     
     //publishing time spent lost
     tl_pub.publish(trackingLostTimeTotal);
@@ -428,6 +444,10 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     std_msgs::Int8 losses;
     losses.data = numTrackingLosses;
     nl_pub.publish(losses);
+    
+    //publishing name of bag and playback rate
+    b_pub.publish(bag);
+    r_pub.publish(PlaybackRate);
    
     
     

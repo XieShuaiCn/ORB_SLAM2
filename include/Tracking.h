@@ -151,7 +151,7 @@ public:
     double TwMMstart;
     double TwMMtime;
     
-    //bool usePvel;
+    bool usePvel;
     
     //Current matches in frame
     int mnMatchesInliers;
