@@ -45,6 +45,7 @@ cv::Mat FrameDrawer::DrawFrame()
     vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
     vector<int> vMatches; // Initialization: correspondeces with reference keypoints
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
+    vector<cv::KeyPoint> vLastKeys;
     vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
     int state; // Tracking state
 
@@ -97,7 +98,7 @@ cv::Mat FrameDrawer::DrawFrame()
         const float r = 5;
         const int n = vCurrentKeys.size();
         
-        
+        //-----------------------------------------------------------//
         for(int i=0;i<n;i++) //drawing all actual point locations
         {
             if(vbVO[i] || vbMap[i])
@@ -111,43 +112,72 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0)); //green
+                    cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                     
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
                     cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1); //blue (localization)
                     mnTrackedVO++;
                 }
             }
+        }   
+        
+        for(int j=0;j<n_last;j++) //drawing all actual point locations (previous frame)
+        {
+            if(vbVO_last[j] || vbMap_last[j])
+            {
+                cv::Point2f pt3,pt4;
+                pt3.x=vCurrentKeys_last[j].pt.x-r;
+                pt3.y=vCurrentKeys_last[j].pt.y-r;
+                pt4.x=vCurrentKeys_last[j].pt.x+r;
+                pt4.y=vCurrentKeys_last[j].pt.y+r;
+
+                // This is a match to a MapPoint in the map
+                if(vbMap_last[j])
+                {
+                    //cv::rectangle(im,pt3,pt4,cv::Scalar(255,0,255)); //purple
+                    cv::circle(im,vCurrentKeys_last[j].pt,1,cv::Scalar(255,0,255),-1);
+                    
+                }
+                else // This is match to a "visual odometry" MapPoint created in the last frame
+                {
+                    //cv::rectangle(im,pt3,pt4,cv::Scalar(255,255,0));
+                    cv::circle(im,vCurrentKeys_last[j].pt,2,cv::Scalar(255,255,0),-1); //cyan (localization)
+                }
+            }
         }
+       
+        //-----------------------------------------------------------//
+        
         //ORBmatcher matcher(); //questionable
         //int pV = Tracking::getLength(); // <-----------------------------
         //cv::Mat predicted = pTracker->mCurrentFrame.pVelPredicted;
         
         //predicted and length are global variables now
         
-        
+        /*
         for (cv::Point2f pt_pV : mainPredicted) //drawing all predicted main points
         {
             ROS_INFO("looping2...");
             cv::circle(im,pt_pV,1,cv::Scalar(0,255,255),-1);  //yellow
             //cv::circle(im,pt_pV,1,cv::Scalar(255,0,255),-1);  //purple 
         }
+        */
         //ROS_INFO("entering loop...");
         for (cv::Point2f pt_pVm : mPredicted) //drawing all predicted other points //&&
         {
             ROS_INFO("looping2...");
-            cv::circle(im,pt_pVm,1,cv::Scalar(0,0,255),-1); //red //this one isn't drawing
+            cv::circle(im,pt_pVm,1,cv::Scalar(0,0,255),-1); //red
         }
         
         for (cv::Point2f pt_pVp: pPredicted) //drawing all predicted other points //&&
         {
             ROS_INFO("looping3...");
-            cv::circle(im,pt_pVp,1,cv::Scalar(255,0,255),-1); //purple //this one isn't drawing
+            cv::circle(im,pt_pVp,1,cv::Scalar(0,255,255),-1); // yellow
         }
         
         //}
@@ -206,6 +236,12 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
+    
+    n_last = mvCurrentKeys.size(); //setting them
+    vCurrentKeys_last = mvCurrentKeys;
+    vbVO_last = mvbVO;
+    vbMap_last = mvbMap;
+    
     pTracker->mImGray.copyTo(mIm);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     N = mvCurrentKeys.size();

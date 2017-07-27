@@ -53,6 +53,11 @@ public:
     std::vector<cv::Point2f> mPredicted;
     std::vector<cv::Point2f> pPredicted;
     //int length;
+    
+    int n_last; //@@
+    vector<bool> vbVO_last; //defining them
+    vector<bool> vbMap_last;
+    vector<cv::KeyPoint> vCurrentKeys_last;
 
 protected:
 
