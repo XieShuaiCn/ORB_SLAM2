@@ -189,8 +189,12 @@ public:
     
     vector<cv::Point2f> mainVelPredicted;
     vector<cv::Point2f> otherVelPredicted;
+    vector<cv::Point2f> mVelPredicted;
+    vector<cv::Point2f> pVelPredicted;
     //int length;
-
+    
+    cv::Mat mPose;
+    cv::Mat pPose;
 
 private:
 

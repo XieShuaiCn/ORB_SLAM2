@@ -50,6 +50,8 @@ public:
     
     std::vector<cv::Point2f> mainPredicted;
     std::vector<cv::Point2f> otherPredicted;
+    std::vector<cv::Point2f> mPredicted;
+    std::vector<cv::Point2f> pPredicted;
     //int length;
 
 protected:

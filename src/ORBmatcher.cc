@@ -301,6 +301,219 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 }
 
 // Project MapPoints tracked in last frame into the current frame and search matches.
+// Used to track from previous frame (Tracking) (2)
+// This is the code I am interested in modifying ----------------------------------------------------------  (2)
+int ORBmatcher::SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
+{
+    int nmatches = 0;
+
+    // Rotation Histogram (to check rotation consistency)
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+    const float factor = 1.0f/HISTO_LENGTH;
+
+    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3); // Current Camera Rotation <-- this is what is affected
+        const cv::Mat Rcw_m = CurrentFrame.mPose.rowRange(0,3).colRange(0,3); // Current Camera Rotation //&&
+        const cv::Mat Rcw_p = CurrentFrame.pPose.rowRange(0,3).colRange(0,3); // Current Camera Rotation //&&
+    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3); // Current Camera Translation
+
+    const cv::Mat twc = -Rcw.t()*tcw; //.transpose()
+        const cv::Mat twc_m = -Rcw_m.t()*tcw; //.transpose() //&&
+        const cv::Mat twc_p = -Rcw_p.t()*tcw; //.transpose() //&&
+
+    const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3); // Last Frame's Camera Rotation
+    const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3); // Last Frame's Camera Translation
+ 
+    const cv::Mat tlc = Rlw*twc+tlw;
+        const cv::Mat tlc_m = Rlw*twc_m+tlw; //&&
+        const cv::Mat tlc_p = Rlw*twc_p+tlw; //&&
+
+    const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
+    const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono; 
+        //const bool bForward_m = tlc_m.at<float>(2)>CurrentFrame.mb && !bMono; //&&
+        //const bool bBackward_m = -tlc_m.at<float>(2)>CurrentFrame.mb && !bMono; //&&
+        //const bool bForward_p = tlc_p.at<float>(2)>CurrentFrame.mb && !bMono; //&&
+        //const bool bBackward_p = -tlc_p.at<float>(2)>CurrentFrame.mb && !bMono; //&&
+    
+    //Matrix for my predictions
+    //CurrentFrame.pVelPredicted = cv::Mat::zeros(LastFrame.N, 2, CV_32F); //ADR <-------------------------------------
+    //CurrentFrame.length = LastFrame.N;
+    
+    for(int i=0; i<LastFrame.N; i++)
+    {
+        MapPoint* pMP = LastFrame.mvpMapPoints[i];
+
+        if(pMP)
+        {
+            if(!LastFrame.mvbOutlier[i])
+            {
+                // Project
+                cv::Mat x3Dw = pMP->GetWorldPos();
+                cv::Mat x3Dc = Rcw*x3Dw+tcw; //camera pos of pMP
+                    cv::Mat x3Dc_m = Rcw_m*x3Dw+tcw; //camera pos of pMP //&&
+                    cv::Mat x3Dc_p = Rcw_p*x3Dw+tcw; //camera pos of pMP //&&
+
+                const float xc = x3Dc.at<float>(0);
+                const float yc = x3Dc.at<float>(1);
+                const float invzc = 1.0/x3Dc.at<float>(2);
+                    const float xc_m = x3Dc_m.at<float>(0);
+                    const float yc_m = x3Dc_m.at<float>(1);
+                    const float invzc_m = 1.0/x3Dc_m.at<float>(2);
+                    const float xc_p = x3Dc_p.at<float>(0);
+                    const float yc_p = x3Dc_p.at<float>(1);
+                    const float invzc_p = 1.0/x3Dc_p.at<float>(2);
+                
+                ///---- copying this section ----////
+                if(invzc<0)
+                    continue;
+
+                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx; //u and v are the coordinates for the point predictions 
+                float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
+                
+                // I want to be constructing some data structure here and publishing it, this contains 'seed' for points
+                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
+                    continue;
+                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                    continue;
+                ///---- copying this section ----////
+                
+                ///---- copied section start (for m)----////  //&&
+                bool use_m = true;
+                bool use_p = true;
+                
+                if(invzc_m<0)
+                    use_m = false;
+                
+                float u_m = CurrentFrame.fx*xc_m*invzc+CurrentFrame.cx; //u and v are the coordinates for the point predictions 
+                float v_m = CurrentFrame.fy*yc_m*invzc+CurrentFrame.cy;
+                
+                if(u_m<CurrentFrame.mnMinX || u_m>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
+                    use_m = false;
+                if(v_m<CurrentFrame.mnMinY || v_m>CurrentFrame.mnMaxY)
+                    use_m = false;
+                    
+                if (use_m)
+                    CurrentFrame.mVelPredicted.push_back(cv::Point2f(u_m,v_m));
+                ///---- copied section end (for m)----//// //&&
+                ///---- copied section start (for p)----//// //&&
+                if(invzc_p<0)
+                    use_p = false;
+                
+                float u_p = CurrentFrame.fx*xc_p*invzc+CurrentFrame.cx; //u and v are the coordinates for the point predictions 
+                float v_p = CurrentFrame.fy*yc_p*invzc+CurrentFrame.cy;
+                
+                if(u_p<CurrentFrame.mnMinX || u_p>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
+                    use_p = false;
+                if(v_p<CurrentFrame.mnMinY || v_p>CurrentFrame.mnMaxY)
+                    use_p = false;
+                    
+                if (use_p)
+                    CurrentFrame.pVelPredicted.push_back(cv::Point2f(u_p,v_p));
+                
+                
+                ///---- copied section end (for p)----//// //&&
+                    
+                //saving my u,v predictions //ADR <-----------------------------------------
+                //CurrentFrame.pVelPredicted.at<float>(i, 0) = u;
+                //CurrentFrame.pVelPredicted.at<float>(i, 1) = v;
+                CurrentFrame.mainVelPredicted.push_back(cv::Point2f(u,v));
+
+                int nLastOctave = LastFrame.mvKeys[i].octave;
+
+                // Search in a window. Size depends on scale
+                float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
+
+                vector<size_t> vIndices2; // vector holds features found in area
+
+                if(bForward)
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);
+                else if(bBackward)
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, 0, nLastOctave);
+                else
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave-1, nLastOctave+1);
+
+                if(vIndices2.empty())
+                    continue;
+
+                const cv::Mat dMP = pMP->GetDescriptor();
+
+                int bestDist = 256;
+                int bestIdx2 = -1;
+
+                for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
+                {
+                    const size_t i2 = *vit;
+                    if(CurrentFrame.mvpMapPoints[i2])
+                        if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
+                            continue;
+
+                    if(CurrentFrame.mvuRight[i2]>0)
+                    {
+                        const float ur = u - CurrentFrame.mbf*invzc;
+                        const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
+                        if(er>radius)
+                            continue;
+                    }
+
+                    const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
+
+                    const int dist = DescriptorDistance(dMP,d);
+
+                    if(dist<bestDist)
+                    {
+                        bestDist=dist;
+                        bestIdx2=i2;
+                    }
+                }
+
+                if(bestDist<=TH_HIGH)
+                {
+                    CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
+                    nmatches++;
+
+                    if(mbCheckOrientation)
+                    {
+                        float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
+                        if(rot<0.0)
+                            rot+=360.0f;
+                        int bin = round(rot*factor);
+                        if(bin==HISTO_LENGTH)
+                            bin=0;
+                        assert(bin>=0 && bin<HISTO_LENGTH);
+                        rotHist[bin].push_back(bestIdx2);
+                    }
+                }
+            }
+        }
+    }
+
+    //Apply rotation consistency
+    if(mbCheckOrientation)
+    {
+        int ind1=-1;
+        int ind2=-1;
+        int ind3=-1;
+
+        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+
+        for(int i=0; i<HISTO_LENGTH; i++)
+        {
+            if(i!=ind1 && i!=ind2 && i!=ind3)
+            {
+                for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+                {
+                    CurrentFrame.mvpMapPoints[rotHist[i][j]]=static_cast<MapPoint*>(NULL);
+                    nmatches--;
+                }
+            }
+        }
+    }
+
+    return nmatches;
+}
+
+// Project MapPoints tracked in last frame into the current frame and search matches.
 // Used to track from previous frame (Tracking) (2 Other) //**
 // This is the code I am interested in modifying ----------------------------------------------------------  (2 Other)
 int ORBmatcher::SearchByProjectionOther(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)

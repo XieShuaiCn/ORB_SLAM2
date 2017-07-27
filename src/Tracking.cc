@@ -898,6 +898,8 @@ bool Tracking::TrackWithMotionModel()
     UpdateLastFrame();
 
     mCurrentFrame.SetPose(zVelocity*mLastFrame.mTcw); //**
+    mCurrentFrame.mPose = mVelocity*mLastFrame.mTcw; //&&
+    mCurrentFrame.pPose = pVelocity*mLastFrame.mTcw;
     
     //creating 'other' current frame that represents pose from either mVelocity or pVelocity, whichever one isn't being used in zVelocity
     mCurrentFrameOther = Frame(mCurrentFrame);
@@ -913,15 +915,17 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
-    int throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,th,mSensor==System::MONOCULAR); //**
-    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+    //int throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,th,mSensor==System::MONOCULAR); //**
+    //int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+    int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
     
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,2*th,mSensor==System::MONOCULAR); //**
-        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR); //doubles window radius
+        //throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,2*th,mSensor==System::MONOCULAR); //**
+        //nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR); //doubles window radius
+        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
     }
 
     if(nmatches<20)
