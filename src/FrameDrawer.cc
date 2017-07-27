@@ -131,9 +131,16 @@ cv::Mat FrameDrawer::DrawFrame()
         //predicted and length are global variables now
         
         
-        for (cv::Point2f pt_pV : predicted) //drawing all predicted pVelocity points
+        for (cv::Point2f pt_pV : mainPredicted) //drawing all predicted main points
         {
-        cv::circle(im,pt_pV,2,cv::Scalar(0,0,255),-1);       
+            cv::circle(im,pt_pV,1,cv::Scalar(0,255,255),-1);  //yellow
+            //cv::circle(im,pt_pV,1,cv::Scalar(255,0,255),-1);  //purple 
+        }
+        ROS_INFO("entering loop...");
+        for (cv::Point2f pt_pVo : otherPredicted) //drawing all predicted other points
+        {
+        ROS_INFO("looping...");
+        cv::circle(im,pt_pVo,1,cv::Scalar(0,0,255),-1); //red //this one isn't drawing
         }
         
         
@@ -209,7 +216,8 @@ void FrameDrawer::Update(Tracking *pTracker)
     else if(pTracker->mLastProcessedState==Tracking::OK)
     {
     
-        predicted = pTracker->mCurrentFrame.pVelPredicted; // <---------------------------------------
+        mainPredicted = pTracker->mCurrentFrame.mainVelPredicted; // <---------------------------------------
+        otherPredicted = pTracker->mCurrentFrame.otherVelPredicted;
         //length = pTracker->mCurrentFrame.length;
         
         

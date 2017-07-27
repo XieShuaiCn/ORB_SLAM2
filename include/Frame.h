@@ -187,7 +187,8 @@ public:
 
     static bool mbInitialComputations;
     
-    vector<cv::Point2f> pVelPredicted;
+    vector<cv::Point2f> mainVelPredicted;
+    vector<cv::Point2f> otherVelPredicted;
     //int length;
 
 

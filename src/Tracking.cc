@@ -320,7 +320,7 @@ void Tracking::Track()
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 
-                if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+                if(zVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
                     bOK = TrackReferenceKeyFrame(); 
                 }
@@ -350,7 +350,7 @@ void Tracking::Track()
                 {
                     // In last frame we tracked enough MapPoints in the map
 
-                    if(!mVelocity.empty())
+                    if(!zVelocity.empty())
                     {
                         bOK = TrackWithMotionModel();
                     }
@@ -372,7 +372,7 @@ void Tracking::Track()
                     vector<MapPoint*> vpMPsMM;
                     vector<bool> vbOutMM;
                     cv::Mat TcwMM;
-                    if(!mVelocity.empty())
+                    if(!zVelocity.empty())
                     {
                         bOKMM = TrackWithMotionModel();
                         vpMPsMM = mCurrentFrame.mvpMapPoints;
@@ -452,7 +452,7 @@ void Tracking::Track()
 
             }
             else
-                mVelocity = cv::Mat();
+                zVelocity = cv::Mat();
 
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
@@ -897,7 +897,13 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
 
-    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    mCurrentFrame.SetPose(zVelocity*mLastFrame.mTcw); //**
+    
+    //creating 'other' current frame that represents pose from either mVelocity or pVelocity, whichever one isn't being used in zVelocity
+    mCurrentFrameOther = Frame(mCurrentFrame);
+    
+    if (usePvel) {mCurrentFrameOther.SetPose(mVelocity*mLastFrame.mTcw);} //**
+    else {mCurrentFrameOther.SetPose(pVelocity*mLastFrame.mTcw);}
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -907,12 +913,14 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
+    int throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,th,mSensor==System::MONOCULAR); //**
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
     
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+        throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,2*th,mSensor==System::MONOCULAR); //**
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR); //doubles window radius
     }
 
@@ -957,6 +965,7 @@ bool Tracking::TrackWithMotionModel()
 //tf2_geometry_msgs (put this in my CMakeLists and package xml)
 //tf2::fromMsg          00000000000000
 //This is the modified version of TrackWithMotionModel() that uses IMU information
+/*
 bool Tracking::TrackWithIMU()
 {
     ORBmatcher matcher(0.9,true);
@@ -1053,7 +1062,7 @@ bool Tracking::TrackWithIMU()
 
     return nmatchesMap>=10;
 }
-
+*/
 
 //This is the modified version of TrackWithMotionModel() that uses IMU information
 bool Tracking::calculatePVelocity()
@@ -1108,15 +1117,15 @@ bool Tracking::calculatePVelocity()
     pVelocity.at<float>(2,1) = RotMatrix.getRow(2).getY();
     pVelocity.at<float>(2,2) = RotMatrix.getRow(2).getZ();
     
-    uchar depth = pVelocity.type() & CV_MAT_DEPTH_MASK;
+    //uchar depth = pVelocity.type() & CV_MAT_DEPTH_MASK;
     
-    cout << "mVelocity" << endl;
-    cout << mVelocity << endl;
+    //cout << "mVelocity" << endl;
+    //cout << mVelocity << endl;
     
-    cout << "pVelocity" << endl;
-    cout << pVelocity << endl;
+    //cout << "pVelocity" << endl;
+    //cout << pVelocity << endl;
     
-    cout << "Depth: " << depth << endl;
+    //cout << "Depth: " << depth << endl;
     
     /*
     double x = 0;
@@ -1160,11 +1169,12 @@ bool Tracking::calculatePVelocity()
 
 }
 
+/*
 cv::Mat Tracking::getMVelocity()
 {
     return mVelocity.clone();
 }
-
+*/
 
 bool Tracking::TrackLocalMap()
 {

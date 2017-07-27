@@ -51,6 +51,12 @@ public:
     // Used to track from previous frame (Tracking) (2) (found)
     // This is the code I am interested in modifying
     int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
+    
+    // Project MapPoints tracked in last frame into the current frame and search matches.
+    // Used to track from previous frame (Tracking) (2 Other) (found)
+    // This is the code I am interested in modifying
+    // My modified version of SBP used for displaying the 'Other' point in the visualizer along with the first point and the actual point
+    int SearchByProjectionOther(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
 
     // Project MapPoints seen in KeyFrame into the Frame and search matches.
     // Used in relocalisation (Tracking) (3) (found)

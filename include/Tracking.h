@@ -98,6 +98,9 @@ public:
     // Current Frame
     Frame mCurrentFrame;
     cv::Mat mImGray;
+    
+    // 'Other' Frame
+    Frame mCurrentFrameOther;
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;
@@ -127,13 +130,16 @@ public:
 
     //Motion Model from IMU + VO
     cv::Mat pVelocity;
+    
+    //universal, is set by m or pVelocity
+    cv::Mat zVelocity;
 
     //variable for testing my subscriber
     int my_variable;
     
     bool calculatePVelocity(); //my pVelocity calculator
         
-    cv::Mat getMVelocity(); //my mVelocity calculator
+    //cv::Mat getMVelocity(); //my mVelocity calculator
     
     tf2_ros::Buffer tfBuffer; //this was originally protected
     tf2_ros::TransformListener tfListener;
