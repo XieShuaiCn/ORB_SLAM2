@@ -107,6 +107,12 @@ public:
     string PlaybackRate;
     
     geometry_msgs::TransformStamped Vicon_to_Optical_Transform;
+    geometry_msgs::TransformStamped Vicon_to_Optical_Transform2;
+    geometry_msgs::TransformStamped snap_TF;
+    geometry_msgs::TransformStamped o_vicon_snap;
+    
+    int loop;
+    bool nochange = true;
 };
 
 int main(int argc, char **argv)
@@ -250,7 +256,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 	
-	//publishing Vicon_ot
+	//publishing vicon_ot
 	Vicon_to_Optical_Transform = SubscribedTransform;
 	Vicon_to_Optical_Transform.header.frame_id = "world";
 	Vicon_to_Optical_Transform.child_frame_id = "vicon_ot";
@@ -259,6 +265,25 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 	Vicon_to_Optical_Transform.transform.translation.z = WtO.transform.translation.z;
 	
 	br.sendTransform(Vicon_to_Optical_Transform); //sending TF Transform (represents Vicon->Vicon_ot)
+	
+	//publishing o_vicon_ot
+	Vicon_to_Optical_Transform2 = SubscribedTransform;
+	Vicon_to_Optical_Transform2.header.frame_id = "camera_optical_frame";
+	Vicon_to_Optical_Transform2.child_frame_id = "o_vicon_ot";
+	Vicon_to_Optical_Transform2.transform.translation.x = 0;
+	Vicon_to_Optical_Transform2.transform.translation.y = 0;
+	Vicon_to_Optical_Transform2.transform.translation.z = 0;
+	
+	br.sendTransform(Vicon_to_Optical_Transform2); //sending TF Transform (represents Vicon->Vicon_ot)
+	
+	//publishing o_vicon_snap
+	o_vicon_snap.header.frame_id = "o_vicon_ot";
+	o_vicon_snap.header.stamp = SubscribedTransform.header.stamp;
+	o_vicon_snap.child_frame_id = "o_vicon_snap";
+	o_vicon_snap.transform.translation.x = 0;
+	o_vicon_snap.transform.translation.y = 0;
+	o_vicon_snap.transform.translation.z = 0;
+	br.sendTransform(o_vicon_snap); //sending TF Transform (represents Vicon->Vicon_ot)
 }
 
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
@@ -296,6 +321,11 @@ void ImageGrabber::init(ros::NodeHandle nh)
     sendTransform = true;
     lastTrackingState = -1;
     trackingLostTimeTotal = 0;
+    loop = 0;
+    o_vicon_snap.transform.rotation.x = 0;
+    o_vicon_snap.transform.rotation.y = 0;
+    o_vicon_snap.transform.rotation.z = 0;
+    o_vicon_snap.transform.rotation.w = 1;
     
     bool param; //setting pVel using Ros Parameter
     nh.getParam("usePvel", param);
@@ -326,8 +356,8 @@ void ImageGrabber::init(ros::NodeHandle nh)
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
 }
 
-    //finding transform between two frames to find rms error
-    geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
+//finding transform between two frames to find rms error
+geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
     geometry_msgs::TransformStamped transformStamped;
     
     try{
@@ -460,7 +490,16 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //publishing name of bag and playback rate
     b_pub.publish(bag);
     r_pub.publish(PlaybackRate);
-   
+    
+    
+    loop = loop + 1;
+    if (loop == 100) {
+    snap_TF = ImageGrabber::findTransform("camera_optical_frame", "o_vicon_ot");
+    if (snap_TF.transform.rotation.w != 0) {
+	    o_vicon_snap.transform.rotation = snap_TF.transform.rotation;
+	}
+    loop = 0;
+    }
     
     
 } //end

@@ -1,0 +1,59 @@
+
+
+
+
+
+
+I need to start at Tracking.cc, then work with ORBmatcher.cc as well. I'm sure others are useful too. 
+
+
+
+
+
+## Tracking.cc
+	# bool bOK is used for logic, starts true but can be changed by TrackReferenceKeyFrame(), TrackWithMotionModel(), TrackReferenceKeyFrame(), Relocalization(), 
+
+bool mbVO # true if in last frame we tracked mainly visual odometry points, false if in last frame we tracked enough MapPoints 
+
+Tracking::Tracking
+	
+	# Loading ORB parameters
+	int nFeatures = fSettings["ORBextractor.nFeatures"];
+	float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
+	int nLevels = fSettings["ORBextractor.nLevels"];
+	int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
+	int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+
+	if(sensor==System::MONOCULAR)
+    	mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+
+    void Tracking::Track()
+    { 
+    	if () #not initialized
+
+    	else () #System is initialized
+
+    		if () #Initial camera pose estimation using motion model, or relocalization if tracking lost
+ 
+    				if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+    					{ bOK = TrackReferenceKeyFrame(); }
+
+    				else {
+    				    bOK = TrackWithMotionModel();
+    				    if(!bOK)
+    				        bOK = TrackReferenceKeyFrame();
+    				}
+
+    		else () #Localization mode: Local Mapping is deactivated
+    				if(mState==LOST)
+            			{
+                			bOK = Relocalization();
+            			}
+            		else 
+            			if (!mbvO) # if we tracked enough map points
+            				# if tracked enough map points and !mVelocity.empty(), TrackWithMotionModel()
+            				# if tracked enough map points and mVelocity.empty(), TrackReferenceKeyFrame() 
+
+            			else # if we tracked mainly visual odometry points

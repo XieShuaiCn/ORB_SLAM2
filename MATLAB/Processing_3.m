@@ -1,9 +1,9 @@
 %% Andre Ruas
 close all; clc; clear;
-j = 44;
+j = 59;
 
 disp("starting...")
-while j <= 45
+while j <= 64
     
 if j == 18 || j == 19 || j == 20 %excluding certain bags
     j = j + 1;
@@ -41,14 +41,14 @@ trackingState_msg = readMessages(trackingState);
 transC_msg = readMessages(transC); %%avg%%
 transV_msg = readMessages(transV); %%avg%%
 
-%looping through transC and transV
 s = length(transC_msg);
 distance = zeros(s,1);
 distance_edited = zeros(s,1);
 TrackTime = zeros(s,1);
 TwMMtime = zeros(s,1);
+trackingState = zeros(s,1);
 
-for i = 1:s
+for i = 1:s %looping through all messages in rosbag
 xc = transC_msg{i,1}.Transform.Translation.X;
 yc = transC_msg{i,1}.Transform.Translation.Y;
 zc = transC_msg{i,1}.Transform.Translation.Z;
@@ -64,16 +64,23 @@ distance(i,1) = ((xc-xv)^2 + (yc-yv)^2 + (zc-zv)^2)^(.5);
     end
 TrackTime(i,1) = TrackTime_msg{i,1}.Data;
 TwMMtime(i,1) = TwMMtime_msg{i,1}.Data;
+trackingState(i,1) = trackingState_msg{i,1}.Data;
 
 end
 
+%calculating averages for a particular rosbag
 TrackTime_avg = mean(TrackTime);
 TwMMtime_avg = mean(TwMMtime);
 tSL = timeSpentLost_msg{i-1,1}.Data;
 tLC = trackLossCount_msg{i-1,1}.Data;
 dist_avg = mean(distance);
 dist_edit = mean(distance_edited);
+bool = "false";
+if (MoP_msg{i-1,1}.Data)
+   bool = "true" ;
+end
 
+fprintf("Use p is %s for %s \n", bool, fileName);
 fprintf("The average frame duration for %s is %8.8f \n",fileName, TrackTime_avg);
 fprintf("The average twMM duration for %s is %8.8f \n",fileName, TwMMtime_avg);
 fprintf("The time spent lost for %s is %8.8f \n",fileName, tSL);
@@ -82,6 +89,10 @@ fprintf("The unedited average distance for %s is %8.8f \n",fileName, dist_avg);
 fprintf("The edited average distance for %s is %8.8f \n \n",fileName, dist_edit);
 j = j + 1;
 
+%plotting relevant information for rosbag
+x = 1:s;
+plot(x,trackingState);
+hold on;
 end
 
 %% generating figures
