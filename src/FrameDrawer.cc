@@ -170,13 +170,13 @@ cv::Mat FrameDrawer::DrawFrame()
         //ROS_INFO("entering loop...");
         for (cv::Point2f pt_pVm : mPredicted) //drawing all predicted other points //&&
         {
-            ROS_INFO("looping2...");
+            //ROS_INFO("looping2...");
             cv::circle(im,pt_pVm,1,cv::Scalar(0,0,255),-1); //red
         }
         
         for (cv::Point2f pt_pVp: pPredicted) //drawing all predicted other points //&&
         {
-            ROS_INFO("looping3...");
+            //ROS_INFO("looping3...");
             cv::circle(im,pt_pVp,1,cv::Scalar(0,255,255),-1); // yellow
         }
         

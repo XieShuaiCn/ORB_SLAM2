@@ -105,6 +105,8 @@ public:
     
     string bag;    
     string PlaybackRate;
+    
+    geometry_msgs::TransformStamped Vicon_to_Optical_Transform;
 };
 
 int main(int argc, char **argv)
@@ -247,6 +249,16 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     
     v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
+	
+	//publishing Vicon_ot
+	Vicon_to_Optical_Transform = SubscribedTransform;
+	Vicon_to_Optical_Transform.header.frame_id = "world";
+	Vicon_to_Optical_Transform.child_frame_id = "vicon_ot";
+	Vicon_to_Optical_Transform.transform.translation.x = WtO.transform.translation.x;
+	Vicon_to_Optical_Transform.transform.translation.y = WtO.transform.translation.y;
+	Vicon_to_Optical_Transform.transform.translation.z = WtO.transform.translation.z;
+	
+	br.sendTransform(Vicon_to_Optical_Transform); //sending TF Transform (represents Vicon->Vicon_ot)
 }
 
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
@@ -453,6 +465,13 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
 } //end
 
+
+/*
+
+rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate -O test45
+
+
+*/
 
 
 

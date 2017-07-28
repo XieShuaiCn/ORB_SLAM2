@@ -22,6 +22,8 @@
 
 <node pkg="tf" type="static_transform_publisher" name="fcu_optical_frame_publisher" args="0 0 0 .30784 .67566 -.615 -.2583 fcu_ot fcu_optical 5" />
 
+<node pkg="tf" type="static_transform_publisher" name="vicon_optical_frame_publisher" args="0 0 0 .5 -.5 .5 -.5 vicon_ot vicon_optical 5" />
+
 <node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 .5 .5 local odom 10" />
 
 <node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" args="_use_mag:=false"/>

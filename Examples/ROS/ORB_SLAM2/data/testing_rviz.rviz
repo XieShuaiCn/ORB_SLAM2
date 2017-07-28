@@ -157,9 +157,9 @@ Visualization Manager:
       Frames:
         All Enabled: false
         camera_frame:
-          Value: true
-        camera_optical_frame:
           Value: false
+        camera_optical_frame:
+          Value: true
         fcu_optical:
           Value: false
         fcu_ot:
@@ -171,13 +171,17 @@ Visualization Manager:
         imu4:
           Value: false
         init_link:
-          Value: true
+          Value: false
         local:
           Value: false
         odom:
           Value: false
         vicon/firefly_sbx/firefly_sbx:
+          Value: false
+        vicon_optical:
           Value: true
+        vicon_ot:
+          Value: false
         world:
           Value: true
       Marker Scale: 1
@@ -203,6 +207,9 @@ Visualization Manager:
                 {}
           vicon/firefly_sbx/firefly_sbx:
             {}
+          vicon_ot:
+            vicon_optical:
+              {}
       Update Interval: 0
       Value: true
   Enabled: true

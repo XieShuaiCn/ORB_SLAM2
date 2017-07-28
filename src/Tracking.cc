@@ -904,8 +904,8 @@ bool Tracking::TrackWithMotionModel()
     //creating 'other' current frame that represents pose from either mVelocity or pVelocity, whichever one isn't being used in zVelocity
     mCurrentFrameOther = Frame(mCurrentFrame);
     
-    if (usePvel) {mCurrentFrameOther.SetPose(mVelocity*mLastFrame.mTcw);} //**
-    else {mCurrentFrameOther.SetPose(pVelocity*mLastFrame.mTcw);}
+    //if (usePvel) {mCurrentFrameOther.SetPose(mVelocity*mLastFrame.mTcw);} //**
+    //else {mCurrentFrameOther.SetPose(pVelocity*mLastFrame.mTcw);}
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -1079,17 +1079,18 @@ bool Tracking::calculatePVelocity()
     
     //cv::Mat empty;
     
-    ROS_INFO("Calculating pVelocity");
+    //ROS_INFO("Calculating pVelocity");
     //////// getting IMU information //////
     geometry_msgs::TransformStamped transformStamped;
     try{
     /*
       transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
                                 ros::Time(mLastFrame.mTimeStamp), "fcu_ot", ros::Duration(.01));
-    */
-    transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
+      transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
                                 ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
-    
+    */
+          transformStamped = tfBuffer.lookupTransform("vicon_optical", ros::Time(mCurrentFrame.mTimeStamp), "vicon_optical",
+                                ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
@@ -1120,65 +1121,11 @@ bool Tracking::calculatePVelocity()
     pVelocity.at<float>(2,0) = RotMatrix.getRow(2).getX();
     pVelocity.at<float>(2,1) = RotMatrix.getRow(2).getY();
     pVelocity.at<float>(2,2) = RotMatrix.getRow(2).getZ();
-    
-    //uchar depth = pVelocity.type() & CV_MAT_DEPTH_MASK;
-    
-    //cout << "mVelocity" << endl;
-    //cout << mVelocity << endl;
-    
-    //cout << "pVelocity" << endl;
-    //cout << pVelocity << endl;
-    
-    //cout << "Depth: " << depth << endl;
-    
-    /*
-    double x = 0;
-    pVelocity.at<double>(0,0) = x; //replacing Rotation Matrix in pVelocity with dummy constants
-    pVelocity.at<double>(0,1) = x;
-    pVelocity.at<double>(0,2) = x;
-    */
-    
-    /*
-    pVelocity.at<double>(1,0) = x;
-    pVelocity.at<double>(1,1) = x;
-    pVelocity.at<double>(1,2) = x;
-    pVelocity.at<double>(2,0) = x;
-    pVelocity.at<double>(2,1) = x;
-    pVelocity.at<double>(2,2) = x;
-    */
-    
-    /*
-    pVelocity.at<double>(3,0) = x; //sets translation matrix to zero
-    pVelocity.at<double>(3,1) = x;
-    pVelocity.at<double>(3,2) = x;
-    */
-    
-    //ROS_INFO("pVelocity x translation is: [%d]", );
-    //ROS_INFO("pVelocity x translation is: [%d]", );
-    //ROS_INFO("pVelocity x translation is: [%d]", );
-    
-    /*
-    //ROS_INFO("mVelocity not initialized [%d]", ); return mVelocity;
-    pVelocity.at<double>(0,3) = 0;
-    pVelocity.at<double>(1,3) = 0;
-    pVelocity.at<double>(2,3) = 0;
-    pVelocity.at<double>(3,3) = 0;
-    
-    
-    */
-    //return pVelocity;
-    ///////   
-    
+
     return true;          
 
 }
 
-/*
-cv::Mat Tracking::getMVelocity()
-{
-    return mVelocity.clone();
-}
-*/
 
 bool Tracking::TrackLocalMap()
 {
