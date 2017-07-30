@@ -71,7 +71,7 @@ public:
     ros::Publisher tl_pub; //time spend lost
     ros::Publisher r_pub; //time spend lost
     ros::Publisher b_pub; //time spend lost
-    
+    ros::Publisher ln_pub; //time spend lost
         
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
@@ -105,7 +105,8 @@ public:
     
     string bag;    
     string PlaybackRate;
-    
+    string length;
+
     geometry_msgs::TransformStamped Vicon_to_Optical_Transform;
     geometry_msgs::TransformStamped Vicon_to_Optical_Transform2;
     geometry_msgs::TransformStamped snap_TF;
@@ -339,6 +340,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
 
     nh.getParam("bag", bag);
     nh.getParam("rate", PlaybackRate);
+    nh.getParam("length", length);
     
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
@@ -357,6 +359,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     nl_pub = nh.advertise<std_msgs::Int8>("diag/trackLossCount",1000);
     b_pub = nh.advertise<std_msgs::String>("diag/bagName",1000);
     r_pub = nh.advertise<std_msgs::String>("diag/playbackRate",1000);
+    ln_pub = nh.advertise<std_msgs::String>("diag/length",1000);
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
@@ -496,7 +499,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //publishing name of bag and playback rate
     b_pub.publish(bag);
     r_pub.publish(PlaybackRate);
-    
+    ln_pub.publish(length);
     
     loop = loop + 1;
     if (loop == 100) {
