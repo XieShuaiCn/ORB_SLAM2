@@ -1089,8 +1089,15 @@ bool Tracking::calculatePVelocity()
       transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
                                 ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
     */
+    if (useVicon) {
           transformStamped = tfBuffer.lookupTransform("vicon_optical", ros::Time(mCurrentFrame.mTimeStamp), "vicon_optical",
                                 ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
+    }
+    else {
+          transformStamped = tfBuffer.lookupTransform("fcu_optical", ros::Time(mCurrentFrame.mTimeStamp), "fcu_optical",
+                                ros::Time(mLastFrame.mTimeStamp), "local", ros::Duration(.01));
+    }
+
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());

@@ -72,7 +72,8 @@ public:
     ros::Publisher r_pub; //time spend lost
     ros::Publisher b_pub; //time spend lost
     ros::Publisher ln_pub; //time spend lost
-        
+    ros::Publisher vc_pub; //time spend lost    
+
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
 
@@ -338,6 +339,10 @@ void ImageGrabber::init(ros::NodeHandle nh)
     nh.getParam("usePvel", param);
     mpSLAM->mpTracker->usePvel = param;
 
+    bool vparam; //setting pVel using Ros Parameter
+    nh.getParam("useVicon", vparam);
+    mpSLAM->mpTracker->useVicon = vparam;
+
     nh.getParam("bag", bag);
     nh.getParam("rate", PlaybackRate);
     nh.getParam("length", length);
@@ -360,7 +365,8 @@ void ImageGrabber::init(ros::NodeHandle nh)
     b_pub = nh.advertise<std_msgs::String>("diag/bagName",1000);
     r_pub = nh.advertise<std_msgs::String>("diag/playbackRate",1000);
     ln_pub = nh.advertise<std_msgs::String>("diag/length",1000);
-    
+    vc_pub = nh.advertise<std_msgs::Bool>("diag/useVicon",1000);
+
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
 }
@@ -487,6 +493,9 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     // publishing if we are using m or p velocity
     mop_pub.publish(mpSLAM->mpTracker->usePvel);
+
+    // publishing if we are using vicon
+    vc_pub.publish(mpSLAM->mpTracker->useVicon);
     
     //publishing time spent lost
     tl_pub.publish(trackingLostTimeTotal);
@@ -531,7 +540,9 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 /*
 
-rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate -O test45
+rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length -O test65
+
+roslaunch ORB_SLAM2 trueDynamic.launch r:=.5 bag:=easy1 p:=false s:=60
 
 
 */

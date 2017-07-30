@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 334
   - Class: rviz/Selection
@@ -68,23 +69,23 @@ Visualization Manager:
         camera_frame:
           Value: false
         camera_optical_frame:
-          Value: false
+          Value: true
         fcu_optical:
-          Value: false
+          Value: true
         fcu_ot:
           Value: false
         fcu_vicon:
-          Value: false
+          Value: true
         fcu_vt:
           Value: false
         imu4:
-          Value: true
+          Value: false
         init_link:
           Value: false
         local:
           Value: false
         odom:
-          Value: true
+          Value: false
         vicon/firefly_sbx/firefly_sbx:
           Value: true
         vicon_optical:
@@ -159,10 +160,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.395012856
+      Pitch: 0.795012593
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 6.14769173
+      Yaw: 0.6095016
     Saved:
       - Class: rviz/Orbit
         Distance: 9.78644466

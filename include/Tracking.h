@@ -158,6 +158,7 @@ public:
     double TwMMtime;
     
     bool usePvel;
+    bool useVicon;
     
     //Current matches in frame
     int mnMatchesInliers;
