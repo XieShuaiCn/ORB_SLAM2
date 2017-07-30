@@ -509,7 +509,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     //establishing semi-static transform
 
-    if (doTransform) {
+    if ((loop == 10) && (doTransform)) {
     doTransform = false;
     fcu_ot_semi_static = ImageGrabber::findTransform("camera_optical_frame", "fcu_ot");
     fcu_vt_semi_static = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "fcu_vt");
@@ -518,9 +518,9 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     fcu_vt_semi_static.header.frame_id = "fcu_vt";
     fcu_vt_semi_static.child_frame_id = "fcu_vicon";
     
-    s_b_o.sendTransform(fcu_ot_semi_static);
-    s_b_v.sendTransform(fcu_vt_semi_static);
-    }    
+    s_b_o.sendTransform(fcu_ot_semi_static); //sending semi static transforms for fcu
+    s_b_v.sendTransform(fcu_vt_semi_static); //to line up fcu pose with c_o_f and vicon poses
+    }
 
 
 } //end
