@@ -27,7 +27,7 @@
 #include "std_msgs/String.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TransformStamped.h"
-#include <cmath>        // std::abs
+#include <tf2_ros/static_transform_broadcaster.h>
 
 using namespace std;
 
@@ -113,6 +113,12 @@ public:
     
     int loop;
     bool nochange = true;
+
+    geometry_msgs::TransformStamped fcu_ot_semi_static;
+    geometry_msgs::TransformStamped fcu_vt_semi_static;
+    bool doTransform = true;
+    tf2_ros::StaticTransformBroadcaster s_b_o;
+    tf2_ros::StaticTransformBroadcaster s_b_v;
 };
 
 int main(int argc, char **argv)
@@ -274,7 +280,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 	Vicon_to_Optical_Transform2.transform.translation.y = 0;
 	Vicon_to_Optical_Transform2.transform.translation.z = 0;
 	
-	br.sendTransform(Vicon_to_Optical_Transform2); //sending TF Transform (represents Vicon->Vicon_ot)
+	//br.sendTransform(Vicon_to_Optical_Transform2); //sending TF Transform (represents Vicon->Vicon_ot)
 	
 	//publishing o_vicon_snap
 	o_vicon_snap.header.frame_id = "o_vicon_ot";
@@ -283,7 +289,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 	o_vicon_snap.transform.translation.x = 0;
 	o_vicon_snap.transform.translation.y = 0;
 	o_vicon_snap.transform.translation.z = 0;
-	br.sendTransform(o_vicon_snap); //sending TF Transform (represents Vicon->Vicon_ot)
+	//br.sendTransform(o_vicon_snap); //sending TF Transform (represents Vicon->Vicon_ot)
 }
 
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
@@ -501,7 +507,22 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     loop = 0;
     }
     
+    //establishing semi-static transform
+
+    if (doTransform) {
+    doTransform = false;
+    fcu_ot_semi_static = ImageGrabber::findTransform("camera_optical_frame", "fcu_ot");
+    fcu_vt_semi_static = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "fcu_vt");
+    fcu_ot_semi_static.header.frame_id = "fcu_ot";
+    fcu_ot_semi_static.child_frame_id = "fcu_optical";
+    fcu_vt_semi_static.header.frame_id = "fcu_vt";
+    fcu_vt_semi_static.child_frame_id = "fcu_vicon";
     
+    s_b_o.sendTransform(fcu_ot_semi_static);
+    s_b_v.sendTransform(fcu_vt_semi_static);
+    }    
+
+
 } //end
 
 
