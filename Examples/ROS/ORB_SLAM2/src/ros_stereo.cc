@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sstream>
 #include "std_msgs/Int8.h"
+#include "std_msgs/Int32.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Bool.h"
@@ -77,6 +78,7 @@ public:
     //ros::Publisher pu_pub; //time spend lost 
     ros::Publisher ubf_pub;
     ros::Publisher ubs_pub; 
+    ros::Publisher pts_pub;
 
 
     ros::Subscriber sub;
@@ -415,7 +417,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     //pu_pub = nh.advertise<std_msgs::Int8>("diag/pUsed",1000); //pUsed is for thresholding
     ubf_pub = nh.advertise<std_msgs::Int8>("diag/bothUsedFail",1000);
     ubs_pub = nh.advertise<std_msgs::Int8>("diag/bothUsedSuccess",1000);
-
+    pts_pub = nh.advertise<std_msgs::Int32>("diag/numMatches",1000);
 
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
@@ -569,6 +571,11 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     b_pub.publish(bag);
     r_pub.publish(PlaybackRate);
     ln_pub.publish(length);
+
+    // publishing number of tracked points
+    std_msgs::Int32 numMatches;
+    numMatches.data = mpSLAM->mpTracker->mCurrentFrame.numMatches;
+    pts_pub.publish(numMatches);
     
     loop = loop + 1;
     /*
@@ -610,6 +617,8 @@ cd ~/../../media/andre/Extra\ Space/recorded_bags
 
 
 ~/../../media/andre/Extra\ Space/bags
+
+//previously hard1 18 lost 2 fail 15 successes
 */
 
 

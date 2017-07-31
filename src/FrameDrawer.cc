@@ -210,7 +210,8 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
             s << "LOCALIZATION | ";
         int nKFs = mpMap->KeyFramesInMap();
         int nMPs = mpMap->MapPointsInMap();
-        s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
+        s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;        
+
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }
@@ -263,6 +264,7 @@ void FrameDrawer::Update(Tracking *pTracker)
         mPredicted = pTracker->mCurrentFrame.mVelPredicted; // <---------------------------------------
         pPredicted = pTracker->mCurrentFrame.pVelPredicted;
         //length = pTracker->mCurrentFrame.length;
+        pTracker->mCurrentFrame.numMatches = mnTracked;
         
         
         for(int i=0;i<N;i++)

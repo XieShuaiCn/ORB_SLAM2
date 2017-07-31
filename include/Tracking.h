@@ -265,7 +265,7 @@ protected:
 
     //ros::NodeHandle nh;
     
-    bool TrackWithIMU(); //my IMU tracking function
+    //bool TrackWithIMU(); //my IMU tracking function
 };
 
 

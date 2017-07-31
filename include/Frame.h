@@ -196,6 +196,8 @@ public:
     cv::Mat mPose;
     cv::Mat pPose;
 
+    int numMatches;
+
 private:
 
     // Undistort keypoints given OpenCV distortion parameters.

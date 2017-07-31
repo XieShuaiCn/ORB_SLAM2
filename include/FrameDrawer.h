@@ -59,6 +59,8 @@ public:
     vector<bool> vbMap_last;
     vector<cv::KeyPoint> vCurrentKeys_last;
 
+    int mnTracked, mnTrackedVO; //these are the points that are being tracked through each frame
+
 protected:
 
     void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
@@ -69,7 +71,6 @@ protected:
     vector<cv::KeyPoint> mvCurrentKeys;
     vector<bool> mvbMap, mvbVO;
     bool mbOnlyTracking;
-    int mnTracked, mnTrackedVO;
     vector<cv::KeyPoint> mvIniKeys;
     vector<int> mvIniMatches;
     int mState;

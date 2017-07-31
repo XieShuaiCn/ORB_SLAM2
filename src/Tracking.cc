@@ -428,7 +428,7 @@ void Tracking::Track()
         if(bOK)
             mState = OK;
         else
-            mState=LOST;
+            mState = LOST;
 
         // Update drawer
         mpFrameDrawer->Update(this);
@@ -579,7 +579,7 @@ void Tracking::StereoInitialization()
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
-        mState=OK;
+        mState = OK;
     }
 }
 
@@ -889,6 +889,9 @@ void Tracking::UpdateLastFrame()
 
 bool Tracking::TrackWithMotionModel()
 {
+    
+    bool bothUsed = false;
+
     ORBmatcher matcher(0.9,true);
     
     TwMMstart = ros::Time::now().toSec();
@@ -926,14 +929,16 @@ bool Tracking::TrackWithMotionModel()
 
     if ((nmatches<20) && (useBoth))
     {
+        bothUsed = true;
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR, true);
-        if(nmatches<20) {bothUsedFail = bothUsedFail + 1;}
-        else {bothUsedSuccess = bothUsedSuccess + 1;}
+        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR, true); //double radius hopefully helps
+        if (nmatches>20) {bothUsedSuccess = bothUsedSuccess + 1;}
+        else {bothUsedFail = bothUsedFail + 1;}
     }
 
-    if(nmatches<20)
+    if(nmatches<20) {
         return false;
+    }
         
     TwMMtime = ros::Time::now().toSec() - TwMMstart;
 
@@ -964,113 +969,21 @@ bool Tracking::TrackWithMotionModel()
     if(mbOnlyTracking)
     {
         mbVO = nmatchesMap<10;
+        //if (bothUsed) {
+        //    if (nmatches>20) {bothUsedSuccess = bothUsedSuccess + 1;}
+        //    else {bothUsedFail = bothUsedFail + 1;}
+        //}
         return nmatches>20;
     }
 
+    //if (bothUsed) {
+    //        if (nmatchesMap>=10) {bothUsedSuccess = bothUsedSuccess + 1;}
+    //        else {bothUsedFail = bothUsedFail + 1;}
+    //}
     return nmatchesMap>=10;
 }
 
-//tf2_geometry_msgs (put this in my CMakeLists and package xml)
-//tf2::fromMsg          00000000000000
-//This is the modified version of TrackWithMotionModel() that uses IMU information
-/*
-bool Tracking::TrackWithIMU()
-{
-    ORBmatcher matcher(0.9,true);
 
-    // Update last frame pose according to its reference keyframe
-    // Create "visual odometry" points if in Localization Mode
-    UpdateLastFrame();
-    
-    //////// getting IMU information //////
-    geometry_msgs::TransformStamped transformStamped;
-    try{
-      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
-                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
-    }
-    catch (tf2::TransformException &ex) {
-      ROS_WARN("%s",ex.what());
-      ros::Duration(1.0).sleep();
-      return false;
-    }
-    
-    //converting from geometry msg to tf2 msg
-    tf2::Quaternion Q;
-    tf2::fromMsg(transformStamped.transform.rotation, Q); //comment this back, this is what is causing trouble
-    
-    
-    tf2::Matrix3x3 RotMatrix(Q); //converting from Quaternion to Rotation Matrix
-    
-    pVelocity = mVelocity.clone();
-    
-    //converting from 3x3 TF to cv::Mat
-    pVelocity.at<float>(0,0) = RotMatrix.getColumn(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
-    pVelocity.at<float>(0,1) = RotMatrix.getColumn(0).getY();
-    pVelocity.at<float>(0,2) = RotMatrix.getColumn(0).getZ();
-    pVelocity.at<float>(1,0) = RotMatrix.getColumn(1).getX();
-    pVelocity.at<float>(1,1) = RotMatrix.getColumn(1).getY();
-    pVelocity.at<float>(1,2) = RotMatrix.getColumn(1).getZ();
-    pVelocity.at<float>(2,0) = RotMatrix.getColumn(2).getX();
-    pVelocity.at<float>(2,1) = RotMatrix.getColumn(2).getY();
-    pVelocity.at<float>(2,2) = RotMatrix.getColumn(2).getZ();
-    
-    ///////             
-
-    mCurrentFrame.SetPose(pVelocity*mLastFrame.mTcw); //setting pose using IMU information
-
-    fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-
-    // Project points seen in previous frame
-    int th;
-    if(mSensor!=System::STEREO)
-        th=15;
-    else
-        th=7;
-    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
-
-    // If few matches, uses a wider window search
-    if(nmatches<20)
-    {
-        fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
-    }
-
-    if(nmatches<20)
-        return false;
-
-    // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
-
-    // Discard outliers
-    int nmatchesMap = 0;
-    for(int i =0; i<mCurrentFrame.N; i++)
-    {
-        if(mCurrentFrame.mvpMapPoints[i])
-        {
-            if(mCurrentFrame.mvbOutlier[i])
-            {
-                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-
-                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                mCurrentFrame.mvbOutlier[i]=false;
-                pMP->mbTrackInView = false;
-                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
-                nmatches--;
-            }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
-                nmatchesMap++;
-        }
-    }    
-
-    if(mbOnlyTracking)
-    {
-        mbVO = nmatchesMap<10;
-        return nmatches>20;
-    }
-
-    return nmatchesMap>=10;
-}
-*/
 
 //This is the modified version of TrackWithMotionModel() that uses IMU information
 bool Tracking::calculatePVelocity()
