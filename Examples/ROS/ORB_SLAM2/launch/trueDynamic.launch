@@ -5,9 +5,11 @@
 <arg name="p" default="false"/>
 <arg name="s" default="200"/>
 <arg name="useV" default="false"/>
+<arg name="useBoth" default="false"/>
 
 <param name="usePvel" type="bool" value="$(arg p)" />
-<param name="useVicon" type="bool" value="$(arg p)" />
+<param name="useVicon" type="bool" value="$(arg useV)" />
+<param name="useBoth" type="bool" value="$(arg useBoth)" />
 <param name="bag" type="string" value="$(arg bag)" />
 <param name="rate" type="string" value="$(arg r)" />
 <param name="length" type="string" value="$(arg s)" />

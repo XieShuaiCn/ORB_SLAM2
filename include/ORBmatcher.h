@@ -58,7 +58,7 @@ public:
     // My modified version of SBP used for displaying the 'Other' point in the visualizer along with the first point and the actual point
     int SearchByProjectionOther(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
     
-    int SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
+    int SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono, bool useP);
 
     // Project MapPoints seen in KeyFrame into the Frame and search matches.
     // Used in relocalisation (Tracking) (3) (found)

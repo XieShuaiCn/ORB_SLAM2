@@ -300,10 +300,11 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     return nmatches;
 }
 
+
 // Project MapPoints tracked in last frame into the current frame and search matches.
 // Used to track from previous frame (Tracking) (2)
 // This is the code I am interested in modifying ----------------------------------------------------------  (2)
-int ORBmatcher::SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
+int ORBmatcher::SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono, bool useP)
 {
     int nmatches = 0;
 
@@ -312,11 +313,15 @@ int ORBmatcher::SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFra
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
     const float factor = 1.0f/HISTO_LENGTH;
+    //if (useP) {const cv::Mat Rcw = CurrentFrame.pPose.rowRange(0,3).colRange(0,3);} // Current Camera Rotation <-- this is what is affected
+    //else {const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);} // Current Camera Rotation <-- this is what is affected}
 
-    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3); // Current Camera Rotation <-- this is what is affected
+    cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3); // Current Camera Rotation <-- this is what is affected
         const cv::Mat Rcw_m = CurrentFrame.mPose.rowRange(0,3).colRange(0,3); // Current Camera Rotation //&&
         const cv::Mat Rcw_p = CurrentFrame.pPose.rowRange(0,3).colRange(0,3); // Current Camera Rotation //&&
     const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3); // Current Camera Translation
+
+    if (useP) {Rcw = Rcw_p;} //for using both
 
     const cv::Mat twc = -Rcw.t()*tcw; //.transpose()
         const cv::Mat twc_m = -Rcw_m.t()*tcw; //.transpose() //&&
@@ -509,73 +514,7 @@ int ORBmatcher::SearchByProjectionBoth(Frame &CurrentFrame, const Frame &LastFra
             }
         }
     }
-
-    return nmatches;
-}
-
-// Project MapPoints tracked in last frame into the current frame and search matches.
-// Used to track from previous frame (Tracking) (2 Other) //**
-// This is the code I am interested in modifying ----------------------------------------------------------  (2 Other)
-int ORBmatcher::SearchByProjectionOther(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
-{
-    int nmatches = 0;
-
-    // Rotation Histogram (to check rotation consistency)
-    vector<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++)
-        rotHist[i].reserve(500);
-
-    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3); // Current Camera Rotation
-    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3); // Current Camera Translation
-
-    const cv::Mat twc = -Rcw.t()*tcw; //.transpose()
-
-    const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3); // Last Frame's Camera Rotation
-    const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3); // Last Frame's Camera Translation
- 
-    const cv::Mat tlc = Rlw*twc+tlw;
     
-    //Matrix for my predictions
-    //CurrentFrame.pVelPredicted = cv::Mat::zeros(LastFrame.N, 2, CV_32F); //ADR <-------------------------------------
-    //CurrentFrame.length = LastFrame.N;
-    
-    for(int i=0; i<LastFrame.N; i++)
-    {
-        MapPoint* pMP = LastFrame.mvpMapPoints[i];
-
-        if(pMP)
-        {
-            if(!LastFrame.mvbOutlier[i])
-            {
-                // Project
-                cv::Mat x3Dw = pMP->GetWorldPos();
-                cv::Mat x3Dc = Rcw*x3Dw+tcw; //camera pos of pMP
-
-                const float xc = x3Dc.at<float>(0);
-                const float yc = x3Dc.at<float>(1);
-                const float invzc = 1.0/x3Dc.at<float>(2);
-
-                if(invzc<0)
-                    continue;
-
-                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx; //u and v are the coordinates for the point predictions 
-                float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-                
-                // I want to be constructing some data structure here and publishing it, this contains 'seed' for points
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
-                    continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
-                    continue;
-                    
-                //saving my u,v predictions //ADR <-----------------------------------------
-                //CurrentFrame.pVelPredicted.at<float>(i, 0) = u;
-                //CurrentFrame.pVelPredicted.at<float>(i, 1) = v;
-                CurrentFrame.otherVelPredicted.push_back(cv::Point2f(u,v));
-                
-            }
-        }
-    }
-
     return nmatches;
 }
 

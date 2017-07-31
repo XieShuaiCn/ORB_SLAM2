@@ -159,7 +159,12 @@ public:
     
     bool usePvel;
     bool useVicon;
-    
+    bool useBoth;
+
+    int bothUsedSuccess;
+    int bothUsedFail;    
+
+
     //Current matches in frame
     int mnMatchesInliers;
 

@@ -915,17 +915,21 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
-    //int throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,th,mSensor==System::MONOCULAR); //**
-    //int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
-    int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+    int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR, false);
     
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        //throwaway = matcher.SearchByProjectionOther(mCurrentFrameOther,mLastFrame,2*th,mSensor==System::MONOCULAR); //**
-        //nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR); //doubles window radius
-        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR, false);
+    }
+
+    if ((nmatches<20) && (useBoth))
+    {
+        fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+        int nmatches = matcher.SearchByProjectionBoth(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR, true);
+        if(nmatches<20) {bothUsedFail = bothUsedFail + 1;}
+        else {bothUsedSuccess = bothUsedSuccess + 1;}
     }
 
     if(nmatches<20)

@@ -73,6 +73,11 @@ public:
     ros::Publisher b_pub; //time spend lost
     ros::Publisher ln_pub; //time spend lost
     ros::Publisher vc_pub; //time spend lost    
+    ros::Publisher ub_pub; //time spend lost  
+    //ros::Publisher pu_pub; //time spend lost 
+    ros::Publisher ubf_pub;
+    ros::Publisher ubs_pub; 
+
 
     ros::Subscriber sub;
     ros::Subscriber sub_fcu;
@@ -121,6 +126,22 @@ public:
     bool doTransform = true;
     tf2_ros::StaticTransformBroadcaster s_b_o;
     tf2_ros::StaticTransformBroadcaster s_b_v;
+
+    double curr_v_x;
+    double curr_v_y;
+    double curr_v_z;
+    double prev_v_x;
+    double prev_v_y;
+    double prev_v_z;
+
+    double tot_accel_x;
+    double tot_accel_y;
+    double tot_accel_z;
+    int tot_num;
+    double avg_accel_x;
+    double avg_accel_y;
+    double avg_accel_z;
+
 };
 
 int main(int argc, char **argv)
@@ -320,6 +341,26 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
     WtFo.transform.rotation = fcu.orientation;
     
 	br.sendTransform(WtFo); //sending TF Transform (represents world->fcu pose)
+
+    /*
+    time_curr = fcu.header.stamp;
+    total_num = total_num + 1;
+    curr_v_x = fcu.angular_velocity.x;
+    curr_v_y = fcu.angular_velocity.y;
+    curr_v_z = fcu.angular_velocity.z;
+    
+    duration = time_curr - time_prev;
+    
+    tot_accel_x = tot_accel_x + (curr_v_x - prev_v_x)/duration;
+    tot_accel_x = tot_accel_x + (curr_v_x - prev_v_x)/duration;
+    tot_accel_x = tot_accel_x + (curr_v_x - prev_v_x)/duration;
+
+    prev_v_x = fcu.angular_velocity.x;
+    prev_v_y = fcu.angular_velocity.y;
+    prev_v_z = fcu.angular_velocity.z;
+    total_num = 0;
+    time_prev = time_now;
+    */
 }
 
 
@@ -342,6 +383,10 @@ void ImageGrabber::init(ros::NodeHandle nh)
     bool vparam; //setting pVel using Ros Parameter
     nh.getParam("useVicon", vparam);
     mpSLAM->mpTracker->useVicon = vparam;
+
+    bool bparam; //setting pVel using Ros Parameter
+    nh.getParam("useBoth", bparam);
+    mpSLAM->mpTracker->useBoth = bparam;
 
     nh.getParam("bag", bag);
     nh.getParam("rate", PlaybackRate);
@@ -366,6 +411,11 @@ void ImageGrabber::init(ros::NodeHandle nh)
     r_pub = nh.advertise<std_msgs::String>("diag/playbackRate",1000);
     ln_pub = nh.advertise<std_msgs::String>("diag/length",1000);
     vc_pub = nh.advertise<std_msgs::Bool>("diag/useVicon",1000);
+    ub_pub = nh.advertise<std_msgs::Bool>("diag/useBoth",1000);
+    //pu_pub = nh.advertise<std_msgs::Int8>("diag/pUsed",1000); //pUsed is for thresholding
+    ubf_pub = nh.advertise<std_msgs::Int8>("diag/bothUsedFail",1000);
+    ubs_pub = nh.advertise<std_msgs::Int8>("diag/bothUsedSuccess",1000);
+
 
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
     sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
@@ -496,7 +546,17 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
     // publishing if we are using vicon
     vc_pub.publish(mpSLAM->mpTracker->useVicon);
-    
+
+    // publishing if we are using both
+    ub_pub.publish(mpSLAM->mpTracker->useBoth);
+
+    // publishing if p is used (if threshold is passed)
+    //pu_pub.publish(mpSLAM->mpTracker->pUsed);
+
+    // publishing impact of useboth flag
+    ubs_pub.publish(mpSLAM->mpTracker->bothUsedSuccess);
+    ubf_pub.publish(mpSLAM->mpTracker->bothUsedFail);
+   
     //publishing time spent lost
     tl_pub.publish(trackingLostTimeTotal);
     
@@ -511,13 +571,15 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     ln_pub.publish(length);
     
     loop = loop + 1;
+    /*
     if (loop == 100) {
     snap_TF = ImageGrabber::findTransform("camera_optical_frame", "o_vicon_ot");
     if (snap_TF.transform.rotation.w != 0) {
 	    o_vicon_snap.transform.rotation = snap_TF.transform.rotation;
 	}
     loop = 0;
-    }
+    */
+    //}<-- where did this come from?
     
     //establishing semi-static transform
 
@@ -542,9 +604,12 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length -O test65
 
-roslaunch ORB_SLAM2 trueDynamic.launch r:=.5 bag:=easy1 p:=false s:=60
+roslaunch ORB_SLAM2 trueDynamic.launch r:=.5 bag:=easy1 p:=false useV:=false useBoth:=false s:=60
+
+cd ~/../../media/andre/Extra\ Space/recorded_bags
 
 
+~/../../media/andre/Extra\ Space/bags
 */
 
 
