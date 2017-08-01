@@ -609,7 +609,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 /*
 
-rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length -O test65
+rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length /diag/useVicon /diag/useBoth /diag/bothUsedFail /diag/bothUsedSuccess /diag/numMatches -O test65
 
 roslaunch ORB_SLAM2 trueDynamic.launch r:=.5 bag:=easy1 p:=false useV:=false useBoth:=false s:=60
 
