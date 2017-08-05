@@ -1,5 +1,6 @@
 /*
         Andre Ruas
+        8/05/17
 */
 
 #include<iostream>
@@ -45,9 +46,12 @@ public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
-    void init(ros::NodeHandle nh);
+    void init(ros::NodeHandle nh); //for initializing various ROS-related things
+
+    //for findint transform between two frames
     geometry_msgs::TransformStamped findTransform(string child, string parent);
     
+    //callback for ROS subscriber for Vicon and FCU info published with rosbag
     void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
     void callback_fcu(const sensor_msgs::Imu fcu);
 
@@ -55,7 +59,7 @@ public:
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
     
-    //defining my publishers
+    //defining my many publishers
     ros::Publisher c_pub; //camera_pose publisher
     ros::Publisher m_pub; //mVelocity (ORB_SLAM2 VO change) publisher
     ros::Publisher p_pub; //pVelocity (my IMU change) publisher
@@ -69,20 +73,20 @@ public:
     ros::Publisher tmm_pub;
     ros::Publisher mop_pub;
     ros::Publisher nl_pub; //number of tracking losses
-    ros::Publisher tl_pub; //time spend lost
-    ros::Publisher r_pub; //time spend lost
-    ros::Publisher b_pub; //time spend lost
-    ros::Publisher ln_pub; //time spend lost
-    ros::Publisher vc_pub; //time spend lost    
-    ros::Publisher ub_pub; //time spend lost  
-    //ros::Publisher pu_pub; //time spend lost 
+    ros::Publisher tl_pub; 
+    ros::Publisher r_pub; 
+    ros::Publisher b_pub; 
+    ros::Publisher ln_pub; 
+    ros::Publisher vc_pub;    
+    ros::Publisher ub_pub; 
+    //ros::Publisher pu_pub;
     ros::Publisher ubf_pub;
     ros::Publisher ubs_pub; 
     ros::Publisher pts_pub;
 
 
-    ros::Subscriber sub;
-    ros::Subscriber sub_fcu;
+    ros::Subscriber sub; //Vicon data subscriber
+    ros::Subscriber sub_fcu; //FCU data subscriber
 
     bool pubPose;
     cv::Mat pose;
@@ -129,25 +133,14 @@ public:
     tf2_ros::StaticTransformBroadcaster s_b_o;
     tf2_ros::StaticTransformBroadcaster s_b_v;
 
-    double curr_v_x;
-    double curr_v_y;
-    double curr_v_z;
-    double prev_v_x;
-    double prev_v_y;
-    double prev_v_z;
-
-    double tot_accel_x;
-    double tot_accel_y;
-    double tot_accel_z;
-    int tot_num;
-    double avg_accel_x;
-    double avg_accel_y;
-    double avg_accel_z;
-
 };
 
 int main(int argc, char **argv)
 {
+
+    //## this first portion of code is unmodified ORB-SLAM2 code ##//
+
+
     ros::init(argc, argv, "RGBD");
     ros::start();
 
@@ -205,7 +198,7 @@ int main(int argc, char **argv)
         cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
     }
 
-    ros::NodeHandle nh;
+    ros::NodeHandle nh; //creating a node handle for all of the ROS publishers
 
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "/camera/right/image_raw", 1);
@@ -213,16 +206,14 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     
-    igb.init(nh);
+    igb.init(nh); //initializing ROS publishers, passing nodehandle
    
-    ros::AsyncSpinner spinner(4);
+    ros::AsyncSpinner spinner(4); // allowing for asynchronous processes
     spinner.start();
     ros::waitForShutdown();
 
     // Stop all threads
     SLAM.Shutdown();
-    
-    //removed saving camera trajectory from here
 
     ros::shutdown();
     return 0;
@@ -609,7 +600,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 /*
 
-rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length /diag/useVicon /diag/useBoth /diag/bothUsedFail /diag/bothUsedSuccess /diag/numMatches -O test65
+rosbag record /diag/MoP /diag/TrackTime /diag/TwMMtime /diag/pointsTracked /diag/timeSpentLost /diag/trackLossCount /diag/trackingState /diag/transC /diag/transV /diag/bagName /diag/playbackRate /diag/length /diag/useVicon /diag/useBoth /diag/bothUsedFail /diag/bothUsedSuccess /diag/numMatches -O test80
 
 roslaunch ORB_SLAM2 trueDynamic.launch r:=.5 bag:=easy1 p:=false useV:=false useBoth:=false s:=60
 
@@ -618,7 +609,6 @@ cd ~/../../media/andre/Extra\ Space/recorded_bags
 
 ~/../../media/andre/Extra\ Space/bags
 
-//previously hard1 18 lost 2 fail 15 successes
 */
 
 

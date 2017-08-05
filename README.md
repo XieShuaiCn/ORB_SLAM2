@@ -1,3 +1,13 @@
+# ORB-SLAM2 IMU Modification
+**Author:** [Andre Ruas] (https://www.linkedin.com/in/andreruas/)
+
+**05 Aug 2017:** Adding comments, paper coming soon
+
+This modification to ORB-SLAM2 integrates IMU data with ORB-SLAM2, improving tracking performance during rotations with strong accelerations. It also ties ORB-SLAM2 more closely with ROS, catkinizing it and setting up several publishers and subscribers to allow for easier testing with Rviz and rosbag. This modification has been evaluated on the EuRoC Visual SLAM dataset, and has shown performance improvements over unmodified ORB-SLAM2 on the 'hard' sequences.
+
+Installing this modification is similar to installing unmodified ORB-SLAM2, and of course requires all of the same dependencies (listed below). If you would like to use catkin (which is recommended), first clone the master branch, and build the ORB-SLAM2 library and the ROS nodes using the included ./build scripts (instructions below). This process should be identical to unmodified ORB-SLAM2. Then, switch to the imu experimental branch (which is the most up to date and fully featured) and build again using catkin_make.
+
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
