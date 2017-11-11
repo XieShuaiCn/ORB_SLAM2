@@ -249,6 +249,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
+
 /*
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
 {
@@ -427,11 +428,11 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     publish(pVelocity, p_pub, br, "", "imu4", false, msgLeft->header.stamp); //use msgLeft->header.stamp for current time
     
     //////// getting rms error //////
-    WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
-    WtC = ImageGrabber::findTransform("camera_frame", "world");
+    //WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
+    //WtC = ImageGrabber::findTransform("camera_frame", "world");
     
-    tv_pub.publish(WtV);
-    tc_pub.publish(WtC);
+    //tv_pub.publish(WtV);
+    //tc_pub.publish(WtC);
     
     //publishing tracking state
     int ORBstate = mpSLAM->mpTracker->mState;
