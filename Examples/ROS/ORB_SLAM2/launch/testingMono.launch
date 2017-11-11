@@ -1,0 +1,31 @@
+<launch>
+
+<arg name="r" default="1"/>
+
+<arg name="bag" default="fr2"/>
+
+<arg name="p" default="false"/>
+
+<param name="usePvel" type="bool" value="$(arg p)" />
+<param name="bag" type="string" value="$(arg bag)" />
+<param name="rate" type="string" value="$(arg r)" />
+
+<node pkg="rosbag" type="play" name="player" output="screen" args="--clock --pause -r $(arg r)  /home/andre/Documents/bags/$(arg bag).bag /imu0:=/imu/data_raw /cam0/image_raw:=/camera/image_raw"/>
+
+<param name = "/use_sim_time" value="true"/>
+
+<node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="0 0 0 .5 -.5 .5 .5 camera_optical_frame camera_frame 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="world_frame_publisher" args="0 0 0 .5 -.5 .5 -.5 local init_link 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 .5 .5 local odom 10" />
+
+<node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" args="_use_mag:=false"/>
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find ORB_SLAM2)/Examples/ROS/ORB_SLAM2/data/testing_rviz.rviz"/>
+
+<node name="rqt_tf_tree" pkg="rqt_tf_tree" type="rqt_tf_tree" />
+
+<node name="Mono" pkg="ORB_SLAM2" type="Mono" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Monocular/TUM2.yaml true"/>
+
+</launch>
