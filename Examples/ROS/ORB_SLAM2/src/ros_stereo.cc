@@ -46,9 +46,10 @@ public:
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
     void init(ros::NodeHandle nh);
     geometry_msgs::TransformStamped findTransform(string child, string parent);
+    geometry_msgs::TransformStamped findTransform2(string child, string parent);
     
     void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
-    void callback_fcu(const sensor_msgs::Imu fcu);
+    //void callback_fcu(const sensor_msgs::Imu fcu);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
@@ -248,7 +249,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
-
+/*
 void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
 {
 
@@ -262,9 +263,9 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
     WtFv.transform.translation.z = Vicon.pose.position.z;
     WtFv.transform.rotation = fcu.orientation;
     
-	br.sendTransform(WtFv); //sending TF Transform (represents world->fcu pose)
+	br.sendTransform(WtFv); //sending TF Transform (represents world->fcu_vt pose)
    
-    WtO = ImageGrabber::findTransform("camera_optical_frame", "world");
+    WtO = ImageGrabber::findTransform2("camera_optical_frame", "world");
     
     WtFo.header.frame_id = "world"; //sending a transform between world and fcu_ot
     WtFo.child_frame_id = "fcu_ot";
@@ -274,8 +275,9 @@ void ImageGrabber::callback_fcu(sensor_msgs::Imu fcu)
     WtFo.transform.translation.z = WtO.transform.translation.z;
     WtFo.transform.rotation = fcu.orientation;
     
-	br.sendTransform(WtFo); //sending TF Transform (represents world->fcu pose)
+	br.sendTransform(WtFo); //sending TF Transform (represents world->fcu_ot pose)
 }
+*/
 
 
 void ImageGrabber::init(ros::NodeHandle nh)
@@ -311,11 +313,12 @@ void ImageGrabber::init(ros::NodeHandle nh)
     r_pub = nh.advertise<std_msgs::String>("diag/playbackRate",1000);
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
-    sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
+    //sub_fcu = nh.subscribe("/fcu/imu", 1, &ImageGrabber::callback_fcu, this);
 }
 
-    //finding transform between two frames to find rms error
-    geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
+
+//finding transform between two frames to find rms error
+geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
     geometry_msgs::TransformStamped transformStamped;
     
     try{
@@ -324,7 +327,23 @@ void ImageGrabber::init(ros::NodeHandle nh)
     }
     catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
-      ROS_INFO("Transform Exception!");
+      ROS_INFO("Transform Exception (Code A)!");
+      return transformStamped;
+    }
+
+}
+
+//finding transform between two frames to find rms error
+geometry_msgs::TransformStamped ImageGrabber::findTransform2(string child, string parent) {
+    geometry_msgs::TransformStamped transformStamped;
+    
+    try{
+      transformStamped = mpSLAM->mpTracker->tfBuffer.lookupTransform(parent, child, ros::Time(0));
+      return transformStamped;
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ROS_INFO("Transform Exception (Code B)!");
       return transformStamped;
     }
 
@@ -448,8 +467,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //publishing name of bag and playback rate
     b_pub.publish(bag);
     r_pub.publish(PlaybackRate);
-   
-    
     
 } //end
 

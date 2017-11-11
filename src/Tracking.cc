@@ -446,8 +446,7 @@ void Tracking::Track()
                 
                 calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
                 
-                if (usePvel) {zVelocity = pVelocity;}
-                else {zVelocity = mVelocity;} //<<<<<<<<<<<....>>>>>>>>>>>>>>>>
+                if (usePvel) {mVelocity = pVelocity;}
                 
 
             }

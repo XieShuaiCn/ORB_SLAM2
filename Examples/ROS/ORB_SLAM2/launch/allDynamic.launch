@@ -2,7 +2,7 @@
 
 <arg name="r" default="1"/>
 
-<arg name="bag" default="easy2"/>
+<arg name="bag" default="easy1"/>
 
 <arg name="p" default="false"/>
 
