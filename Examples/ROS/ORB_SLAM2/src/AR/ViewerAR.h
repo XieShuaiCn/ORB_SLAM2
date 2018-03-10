@@ -27,6 +27,7 @@
 #include <pangolin/pangolin.h>
 #include <string>
 #include"../../../include/System.h"
+#include <unistd.h>
 
 namespace ORB_SLAM2
 {
